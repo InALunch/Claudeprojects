@@ -1,0 +1,564 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Bright Lines vs Dials</title>
+<style>
+  @font-face { font-family: Fredoka; font-weight: 400; src: url(node_modules/@fontsource/fredoka/files/fredoka-latin-400-normal.woff2); }
+  @font-face { font-family: Fredoka; font-weight: 600; src: url(node_modules/@fontsource/fredoka/files/fredoka-latin-600-normal.woff2); }
+  @font-face { font-family: Fredoka; font-weight: 700; src: url(node_modules/@fontsource/fredoka/files/fredoka-latin-700-normal.woff2); }
+  @font-face { font-family: Nunito; font-weight: 700; src: url(node_modules/@fontsource/nunito/files/nunito-latin-700-normal.woff2); }
+  @font-face { font-family: Nunito; font-weight: 800; src: url(node_modules/@fontsource/nunito/files/nunito-latin-800-normal.woff2); }
+  html, body { margin: 0; background: #222; }
+  canvas { display: block; width: 100vw; max-width: 1280px; height: auto; margin: 0 auto; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 1280, H = 720, SCALE = cv.width / W;
+
+// ---------- palette ----------
+const C = {
+  bg: '#FFF6EA', bg2: '#FDEBD6', ink: '#3B2F3F', soft: '#8A7A86',
+  mint: '#7FD8BE', mintD: '#2E9E7F', peach: '#FFB38A', coral: '#FF6B6B', coralD: '#D94848',
+  lav: '#B9A7F5', lavD: '#7A64D6', sun: '#FFD166', sky: '#8EC9F5', skyD: '#3C8FD1',
+  pink: '#FF9EBB', white: '#FFFFFF', gold: '#F4B63F', silver: '#C9CFD8', bronze: '#E09A62',
+};
+
+// ---------- math ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const backOut = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+const prog = (t, s, d) => clamp((t - s) / d);
+const pop = (t, s, d = .45) => backOut(prog(t, s, d));
+
+// ---------- drawing primitives ----------
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function ell(x, y, rx, ry, fill) { ctx.beginPath(); ctx.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), 0, 0, Math.PI * 2); if (fill) { ctx.fillStyle = fill; ctx.fill(); } }
+function card(x, y, w, h, fill = C.white, r = 22, shadow = true) {
+  if (shadow) { rr(x + 5, y + 7, w, h, r); ctx.fillStyle = 'rgba(80,50,40,.12)'; ctx.fill(); }
+  rr(x, y, w, h, r); ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+}
+function txt(s, x, y, o = {}) {
+  ctx.save();
+  ctx.font = `${o.weight || 600} ${o.size || 28}px ${o.font || 'Fredoka'}`;
+  ctx.textAlign = o.align || 'center'; ctx.textBaseline = o.base || 'middle';
+  ctx.globalAlpha *= (o.alpha ?? 1);
+  if (o.stroke) { ctx.lineJoin = 'round'; ctx.lineWidth = o.strokeW || 8; ctx.strokeStyle = o.stroke; ctx.strokeText(s, x, y); }
+  ctx.fillStyle = o.color || C.ink; ctx.fillText(s, x, y);
+  ctx.restore();
+}
+function tw(s, o = {}) { ctx.save(); ctx.font = `${o.weight || 600} ${o.size || 28}px ${o.font || 'Fredoka'}`; const w = ctx.measureText(s).width; ctx.restore(); return w; }
+function wrap(s, maxW, o) {
+  const words = s.split(' '), lines = []; let cur = '';
+  for (const w of words) { const test = cur ? cur + ' ' + w : w; if (tw(test, o) > maxW && cur) { lines.push(cur); cur = w; } else cur = test; }
+  if (cur) lines.push(cur); return lines;
+}
+// run fn inside a translate+scale around (x,y)
+function at(x, y, s, fn, alpha = 1) {
+  if (s <= 0.001 || alpha <= 0.001) return;
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.globalAlpha *= alpha; fn(); ctx.restore();
+}
+
+// ---------- the blob friends ----------
+function hop(t, speed = 2.2, amp = 10, phase = 0) {
+  const s = Math.abs(Math.sin((t + phase) * speed * Math.PI / 2));
+  return { dy: -s * amp, sq: s < .15 ? (.15 - s) * .5 : -.02 * s };
+}
+function blob(x, y, r, color, o = {}) {
+  const t = o.t || 0;
+  ctx.save(); ctx.translate(x, y);
+  // ground shadow (not squashed)
+  ell(0, r * .98 - (o.dy || 0), r * .85 * (1 + (o.dy || 0) / 120), r * .16, 'rgba(70,40,30,.13)');
+  ctx.translate(0, o.dy || 0);
+  const sq = o.sq || 0;
+  ctx.translate(0, r); ctx.scale(1 + sq, 1 - sq); ctx.translate(0, -r);
+  if (o.tilt) ctx.rotate(o.tilt);
+  // accessories behind
+  if (o.antenna) {
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, -r * .9);
+    const wob = Math.sin(t * 5) * 6; ctx.quadraticCurveTo(wob, -r * 1.25, wob * 1.4, -r * 1.45); ctx.stroke();
+    ell(wob * 1.4, -r * 1.48, r * .13, r * .13, (Math.sin(t * 6) > 0) ? C.sun : C.coral); ctx.lineWidth = 3; ctx.stroke();
+  }
+  // arms
+  const armY = r * .25;
+  const wave = o.wave ? Math.sin(t * 9) * .5 : 0;
+  for (const side of [-1, 1]) {
+    ctx.save(); ctx.translate(side * r * .92, armY);
+    let rot = -side * .45;
+    if (o.wave && side === 1) rot = -2.3 + wave;
+    if (o.cheer) rot = -side * (2.5 + Math.sin(t * 8 + side) * .25);
+    ctx.rotate(rot);
+    ell(0, r * .22, r * .16, r * .28, color); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    ctx.restore();
+  }
+  // body
+  ctx.beginPath();
+  ctx.moveTo(-r, r * .15);
+  ctx.bezierCurveTo(-r, -r * 1.05, r, -r * 1.05, r, r * .15);
+  ctx.bezierCurveTo(r, r * 1.02, -r, r * 1.02, -r, r * .15);
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = C.ink; ctx.stroke();
+  // shine
+  ctx.save(); ctx.globalAlpha *= .45; ell(-r * .45, -r * .5, r * .22, r * .13, '#fff'); ctx.restore();
+  if (o.headband) {
+    ctx.save(); ctx.beginPath(); ctx.rect(-r * 1.1, -r * .78, r * 2.2, r * .2); ctx.clip();
+    ctx.beginPath(); ctx.moveTo(-r, r * .15); ctx.bezierCurveTo(-r, -r * 1.05, r, -r * 1.05, r, r * .15); ctx.closePath();
+    ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    ctx.fillStyle = C.coral; ctx.beginPath(); ctx.moveTo(r * .8, -r * .66); ctx.lineTo(r * 1.25, -r * .85 + Math.sin(t * 7) * 5); ctx.lineTo(r * 1.2, -r * .55 + Math.sin(t * 7 + 1) * 5); ctx.fill();
+  }
+  // face
+  const lx = (o.look ? o.look[0] : 0) * r * .08, ly = (o.look ? o.look[1] : 0) * r * .08;
+  const blink = ((t + (o.blink || 0)) % 3.4) < .12;
+  const mood = o.mood || 'happy';
+  for (const side of [-1, 1]) {
+    const ex = side * r * .33 + lx, ey = -r * .12 + ly;
+    if (blink || mood === 'joy') {
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath();
+      if (mood === 'joy') ctx.arc(ex, ey + r * .05, r * .1, Math.PI * 1.15, Math.PI * 1.85);
+      else { ctx.moveTo(ex - r * .1, ey); ctx.lineTo(ex + r * .1, ey); }
+      ctx.stroke();
+    } else if (mood === 'dizzy') {
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; const d = r * .08;
+      ctx.beginPath(); ctx.moveTo(ex - d, ey - d); ctx.lineTo(ex + d, ey + d); ctx.moveTo(ex + d, ey - d); ctx.lineTo(ex - d, ey + d); ctx.stroke();
+    } else {
+      const eh = mood === 'sly' ? r * .09 : r * .15;
+      ell(ex, ey, r * .11, eh, C.ink);
+      ell(ex + r * .035, ey - eh * .4, r * .04, r * .04, '#fff');
+      if (mood === 'sly') { ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(ex - r * .14, ey - r * .12); ctx.lineTo(ex + r * .14, ey - r * .09); ctx.stroke(); }
+    }
+  }
+  ctx.save(); ctx.globalAlpha *= .55; ell(-r * .6, r * .12, r * .14, r * .08, C.pink); ell(r * .6, r * .12, r * .14, r * .08, C.pink); ctx.restore();
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath();
+  const mx = lx * .6, my = r * .16 + ly * .5;
+  if (mood === 'happy' || mood === 'joy') { ctx.arc(mx, my - r * .04, r * .15, Math.PI * .15, Math.PI * .85); ctx.stroke(); }
+  else if (mood === 'o') { ell(mx, my + r * .04, r * .07, r * .09, C.ink); }
+  else if (mood === 'meh' || mood === 'dizzy') { ctx.moveTo(mx - r * .14, my + r * .06); ctx.quadraticCurveTo(mx - r * .05, my, mx, my + r * .06); ctx.quadraticCurveTo(mx + r * .07, my + r * .12, mx + r * .14, my + r * .04); ctx.stroke(); }
+  else if (mood === 'sly') { ctx.moveTo(mx - r * .15, my + r * .02); ctx.quadraticCurveTo(mx + r * .05, my + r * .14, mx + r * .17, my - r * .04); ctx.stroke(); }
+  else if (mood === 'worried') { ctx.arc(mx, my + r * .16, r * .12, Math.PI * 1.2, Math.PI * 1.8); ctx.stroke(); }
+  if (o.sweat) {
+    const sy = -r * .5 + ((t * 1.3) % 1) * r * .5;
+    ctx.save(); ctx.globalAlpha *= 1 - ((t * 1.3) % 1) * .6;
+    ctx.beginPath(); ctx.moveTo(r * .72, sy - r * .16); ctx.quadraticCurveTo(r * .86, sy, r * .72, sy + r * .06); ctx.quadraticCurveTo(r * .58, sy, r * .72, sy - r * .16);
+    ctx.fillStyle = C.sky; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = C.skyD; ctx.stroke(); ctx.restore();
+  }
+  ctx.restore();
+}
+
+function bubble(x, y, w, h, tailX, tailY, fill = C.white, thought = false) {
+  ctx.save();
+  if (thought) {
+    card(x, y, w, h, fill, 30, true);
+    const dx = tailX - (x + w / 2), dy = tailY - (y + h);
+    for (let i = 1; i <= 2; i++) { const k = i / 3; ell(x + w / 2 + dx * (k + .2), y + h + dy * (k + .1), 10 - i * 3, 10 - i * 3, fill); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke(); }
+  } else {
+    const bx = clamp(tailX, x + 30, x + w - 30);
+    rr(x + 5, y + 7, w, h, 20); ctx.fillStyle = 'rgba(80,50,40,.12)'; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx - 14, y + h - 2); ctx.lineTo(tailX, tailY); ctx.lineTo(bx + 14, y + h - 2); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    rr(x, y, w, h, 20); ctx.fillStyle = fill; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx - 12, y + h - 1); ctx.lineTo(bx + 12, y + h - 1); ctx.lineWidth = 6; ctx.strokeStyle = fill; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function sparkle(x, y, s, t, color = C.sun) {
+  const k = .6 + .4 * Math.sin(t * 6 + x);
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t * .8); ctx.scale(s * k, s * k);
+  ctx.beginPath(); for (let i = 0; i < 4; i++) { ctx.rotate(Math.PI / 2); ctx.lineTo(0, -14); ctx.quadraticCurveTo(2, -2, 14, 0); }
+  ctx.closePath(); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+}
+
+function heading(s, t, color = C.ink, y = 62) {
+  const p = pop(t, .1, .5);
+  at(W / 2, y, p, () => {
+    const w = tw(s, { size: 40, weight: 700 }) + 60;
+    card(-w / 2, -32, w, 64, C.white, 32);
+    txt(s, 0, 2, { size: 40, weight: 700, color });
+  });
+}
+
+// captions: list of [startTime, text]; typewriter reveal
+function captions(t, list) {
+  let cur = null;
+  for (const c of list) if (t >= c[0]) cur = c;
+  if (!cur) return;
+  const [s, text] = cur;
+  const o = { size: 27, weight: 800, font: 'Nunito' };
+  const lines = wrap(text, 1060, o);
+  const shown = Math.floor((t - s) * 55);
+  const h = 26 + lines.length * 36, y = H - 22 - h;
+  const a = easeOut(prog(t, s, .25));
+  ctx.save(); ctx.globalAlpha *= a;
+  card(80, y + (1 - a) * 12, 1120, h, 'rgba(255,255,255,.97)', 20);
+  let used = 0;
+  lines.forEach((ln, i) => {
+    const vis = ln.slice(0, clamp(shown - used, 0, ln.length)); used += ln.length + 1;
+    txt(vis, 110, y + (1 - a) * 12 + 31 + i * 36, { ...o, align: 'left', color: C.ink });
+  });
+  ctx.restore();
+}
+
+// ---------- background ----------
+function background(T) {
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  // soft floating circles
+  const blobs = [[120, 140, 90, C.mint], [1150, 120, 70, C.lav], [1080, 560, 110, C.peach], [220, 590, 80, C.sky], [640, 360, 160, C.sun]];
+  blobs.forEach(([x, y, r, c], i) => {
+    ctx.save(); ctx.globalAlpha = .13;
+    ell(x + Math.sin(T * .3 + i) * 25, y + Math.cos(T * .25 + i * 2) * 20, r, r, c); ctx.restore();
+  });
+  // dot grid
+  ctx.fillStyle = 'rgba(160,120,100,.12)';
+  for (let x = 20; x < W; x += 40) for (let y = 20; y < H; y += 40) { ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 7); ctx.fill(); }
+}
+
+// ================= SCENES =================
+const scenes = [];
+function scene(dur, draw) { scenes.push({ dur, draw }); }
+
+// 1. Title
+scene(7.5, t => {
+  const lines = [['Categorical taboos', C.mintD, .3], ['are much better than', C.ink, .7], ['threshold taboos', C.coralD, 1.1]];
+  at(W / 2, 250, pop(t, .1, .5), () => card(-430, -150, 860, 300, C.white, 36));
+  lines.forEach(([s, c, d], i) => at(W / 2, 170 + i * 78, pop(t, d, .5), () => txt(s, 0, 0, { size: i === 1 ? 44 : 64, weight: 700, color: c })));
+  at(W / 2 + 290, 400, pop(t, 1.7, .5), () => {
+    ctx.rotate(-.06); card(-150, -26, 300, 52, C.lav, 26); txt('(neuralese edition)', 0, 1, { size: 27, weight: 600, color: C.white, stroke: C.lavD, strokeW: 5 });
+  });
+  at(W / 2, 480, pop(t, 2.6, .5), () => txt('a tiny, unofficial explainer of Linch Zhang’s LessWrong post', 0, 0, { size: 26, weight: 800, font: 'Nunito', color: C.soft }));
+  const h1 = hop(t, 2, 16), h2 = hop(t, 2, 16, .5);
+  at(230, 560, pop(t, .9, .5), () => blob(0, 0, 62, C.mint, { t, ...h1, mood: 'happy', wave: true, look: [1, 0] }));
+  at(1050, 560, pop(t, 1.2, .5), () => blob(0, 0, 55, C.lav, { t, ...h2, mood: 'joy', antenna: true, blink: 1 }));
+  for (const [x, y, d] of [[170, 150, 1.8], [1120, 190, 2], [940, 110, 2.2]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1.2, t));
+});
+
+// 2. Two ways to draw a line
+scene(13, t => {
+  heading('Two ways to draw a line', t);
+  // left panel: categorical
+  at(345, 330, pop(t, .6), () => {
+    card(-255, -210, 510, 400, '#F2FBF7');
+    txt('CATEGORICAL', 0, -175, { size: 30, weight: 700, color: C.mintD });
+    // ground + bright line
+    ctx.fillStyle = '#E6F4EE'; ctx.fillRect(-240, 90, 480, 10);
+    const glow = .5 + .5 * Math.sin(t * 4);
+    ctx.save(); ctx.shadowColor = C.coral; ctx.shadowBlur = 18 + glow * 14;
+    rr(20, -120, 16, 230, 8); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    rr(20, -120, 16, 230, 8); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+    // sign
+    at(140, -40, pop(t, 1.4), () => { ctx.fillStyle = C.ink; ctx.fillRect(-4, 0, 8, 120); card(-72, -38, 144, 64, C.sun, 14); txt('NEVER.', 0, -5, { size: 32, weight: 700 }); });
+    const h = hop(t, 1.6, 6);
+    blob(-110, 38, 52, C.mint, { t, ...h, mood: 'happy', look: [1, 0] });
+    txt('“Just don’t.”', -100, 150, { size: 30, weight: 600, color: C.mintD, alpha: prog(t, 2, .4) });
+  });
+  // right panel: threshold
+  at(935, 330, pop(t, 5.2), () => {
+    const lt = t - 5.2;
+    card(-255, -210, 510, 400, '#FFF3EE');
+    txt('THRESHOLD', 0, -175, { size: 30, weight: 700, color: C.coralD });
+    // ruler
+    rr(-220, 92, 440, 22, 11); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+    for (let i = 0; i <= 10; i++) { const x = -210 + i * 42; ctx.fillStyle = C.ink; ctx.fillRect(x - 1, 92, 3, i % 5 ? 8 : 14); }
+    rr(-210, 94, 42 * 7, 18, 9); ctx.fillStyle = 'rgba(127,216,190,.5)'; ctx.fill();
+    rr(84, 94, 126, 18, 9); ctx.fillStyle = 'rgba(255,107,107,.45)'; ctx.fill();
+    // N marker
+    ctx.setLineDash([8, 7]); ctx.strokeStyle = C.coralD; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(84, -120); ctx.lineTo(84, 92); ctx.stroke(); ctx.setLineDash([]);
+    at(150, -80, pop(t, 6), () => { card(-80, -36, 160, 72, C.white, 14); txt('Not more', 0, -12, { size: 22, weight: 600 }); txt('than N', 0, 14, { size: 22, weight: 600 }); });
+    // blob inching toward N
+    const p = easeIO(prog(lt, 1.2, 5.5));
+    const x = lerp(-170, 36, p) + Math.sin(lt * 2) * 2 * (p > .98);
+    const h = hop(lt, 3, p < .99 ? 5 : 1);
+    blob(x, 38, 48, C.peach, { t, ...h, mood: p > .9 ? 'sly' : 'o', look: [1, -.3], blink: .7 });
+    txt('“A little is fine…”', -60, -120, { size: 26, weight: 600, color: C.coralD, alpha: prog(lt, 1.6, .4) });
+  });
+  captions(t, [[.8, 'Some taboos are categorical: a bright line you simply don’t cross.'],
+               [5.4, 'Others are thresholds: “some is fine, just not too much.” And people tend to creep right up to the edge.']]);
+});
+
+// 3. Nukes, part 1: the weird fact
+function bomb(x, y, s, color, label, t, nuke) {
+  at(x, y, s, () => {
+    ctx.save(); ctx.rotate(Math.sin(t * 2 + x) * .04);
+    // fins
+    ctx.fillStyle = '#9AA3AE'; ctx.beginPath(); ctx.moveTo(-95, 0); ctx.lineTo(-135, -38); ctx.lineTo(-120, 0); ctx.lineTo(-135, 38); ctx.closePath(); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, 110, 46, 0, 0, 7); ctx.fillStyle = color; ctx.fill(); ctx.stroke();
+    if (nuke) { // trefoil
+      ctx.fillStyle = C.sun; ell(25, 0, 26, 26, C.sun); ctx.stroke(); ctx.fillStyle = C.ink;
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(25, 0); ctx.arc(25, 0, 22, i * 2.094 - .5, i * 2.094 + .5); ctx.closePath(); ctx.fill(); }
+      ell(25, 0, 6, 6, C.sun);
+    }
+    // face
+    ell(-35, -8, 6, 9, C.ink); ell(-5, -8, 6, 9, C.ink);
+    ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(-20, 6, 9, .2, Math.PI - .2); ctx.stroke();
+    ctx.restore();
+    txt(label[0], 0, 84, { size: 25, weight: 700 }); txt(label[1], 0, 116, { size: 22, weight: 800, font: 'Nunito', color: C.soft });
+  });
+}
+scene(9, t => {
+  heading('Exhibit A: the nuclear taboo', t);
+  bomb(330, 300, pop(t, .8), '#B8C0CA', ['A huge ordinary bomb', '(MOAB) ≈ 11 tons of TNT'], t, false);
+  bomb(950, 300, pop(t, 1.8), C.mint, ['One of the tiniest nukes', '(Davy Crockett) ≈ 10–20 tons'], t, true);
+  at(640, 300, pop(t, 2.8), () => { ell(0, 0, 44, 44, C.sun); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke(); txt('≈', 0, 2, { size: 54, weight: 700 }); });
+  at(640, 470, pop(t, 4.4), () => { blob(0, 0, 40, C.lav, { t, mood: 'o', look: [0, -1], ...hop(t, 1.2, 4) }); });
+  captions(t, [[.8, 'Weird fact: the tiniest nukes are roughly as powerful as the biggest conventional bombs.'],
+               [5, 'So banning nukes (but not big bombs) makes no sense by blast size alone. Why not just ban by size?']]);
+});
+
+// 4. Nukes, part 2: no natural place to stop
+scene(12, t => {
+  heading('Where would a yield limit stop?', t);
+  const ticks = [['0.01 kt', 0], ['1 kt', .25], ['15 kt', .5], ['Hiroshima', .5], ['1,000 kt', .75], ['50,000 kt', 1]];
+  const x0 = 180, x1 = 1100, ty = 330;
+  at(640, ty, pop(t, .5), () => {
+    ctx.translate(-640, 0);
+    rr(x0 - 20, -14, x1 - x0 + 40, 28, 14);
+    const g = ctx.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, C.mint); g.addColorStop(.5, C.sun); g.addColorStop(1, C.coral);
+    ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    for (const [lab, f] of ticks) {
+      const x = lerp(x0, x1, f);
+      if (lab === 'Hiroshima') { txt('(Hiroshima)', x, 88, { size: 20, weight: 800, font: 'Nunito', color: C.soft }); continue; }
+      ctx.fillStyle = C.ink; ctx.fillRect(x - 2, 14, 4, 16); txt(lab, x, 60, { size: 24, weight: 700 });
+    }
+    txt('yield', x1 + 20, -40, { size: 22, weight: 800, font: 'Nunito', color: C.soft, align: 'right' });
+  });
+  // creeping knob with rationalizations
+  const stops = [[1.6, .02, 'Just a teeny one?'], [3.6, .25, 'Well, 1 kt was fine…'], [5.6, .5, 'Only Hiroshima-sized!'], [7.6, .78, 'Where was the line again?']];
+  let f = 0, say = null, sayT = 0;
+  for (const [s, v, line] of stops) { if (t >= s) { const prev = f; f = lerp(prev, v, easeIO(prog(t, s, .9))); say = line; sayT = s; } }
+  if (t >= 1.2) {
+    const kx = lerp(x0, x1, f);
+    const worried = f > .45;
+    const h = hop(t, 2.4, 8);
+    blob(kx, ty - 95, 44, worried ? C.peach : C.mint, { t, ...h, mood: f > .7 ? 'dizzy' : worried ? 'worried' : 'happy', sweat: worried, look: [1, 0] });
+    if (say) at(kx, ty - 190, pop(t, sayT + .3, .35), () => {
+      const w = tw(say, { size: 24, weight: 600 }) + 40; const bx = clamp(-w / 2, x0 - 60 - kx, W - 30 - kx - w);
+      bubble(bx, -34, w, 52, 0, 38); txt(say, bx + w / 2, -7, { size: 24, weight: 600 });
+    });
+  }
+  captions(t, [[.6, 'Once “small” nukes are allowed, every next step looks only slightly bigger than the last.'],
+               [6.2, 'There’s no natural place to stop. A yield number has no focal point.']]);
+});
+
+// 5. Nukes, part 3: the bright line held
+scene(9, t => {
+  heading('“No nukes, ever” is a focal point', t);
+  const glow = .5 + .5 * Math.sin(t * 3);
+  at(640, 330, pop(t, .7, .6), () => {
+    ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 30 + glow * 30;
+    rr(-520, -14, 1040, 28, 14); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    rr(-520, -14, 1040, 28, 14); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+  });
+  at(640, 205, pop(t, 1.6), () => { card(-270, -52, 540, 104, C.white, 24); txt('No nuclear weapon used in war', 0, -16, { size: 30, weight: 700 }); txt('since 1945', 0, 22, { size: 34, weight: 700, color: C.coralD }); });
+  const kids = [[330, C.mint, 0], [470, C.sky, .3], [810, C.lav, .6], [950, C.peach, .9]];
+  kids.forEach(([x, c, d], i) => at(x, 460, pop(t, 2.4 + d), () => blob(0, 0, 42, c, { t, ...hop(t, 2.2, 12, d), mood: 'joy', cheer: true, antenna: i === 2 })));
+  for (const [x, y, d] of [[200, 250, 3], [1080, 230, 3.3], [640, 440, 3.6]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1.3, t));
+  captions(t, [[.8, '“No nukes. Period.” is simple, visible, and everyone knows exactly when it’s broken.'],
+               [4.6, 'Because anyone can see the line, it has held for about eighty years.']]);
+});
+
+// 6. Doping
+function gauge(x, y, r, val, t) {
+  ctx.save(); ctx.translate(x, y);
+  card(-r - 30, -r - 40, 2 * r + 60, r + 110, C.white, 26);
+  const a0 = Math.PI, a1 = 2 * Math.PI, lim = 4 / 6;
+  ctx.lineWidth = 26; ctx.lineCap = 'butt';
+  ctx.beginPath(); ctx.arc(0, 20, r - 20, a0, a0 + Math.PI * lim); ctx.strokeStyle = C.mint; ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, 20, r - 20, a0 + Math.PI * lim, a1); ctx.strokeStyle = C.coral; ctx.stroke();
+  for (let i = 0; i <= 6; i++) { const a = a0 + Math.PI * i / 6; txt(String(i), Math.cos(a) * (r + 6), 20 + Math.sin(a) * (r + 6), { size: 20, weight: 700, color: i === 4 ? C.coralD : C.soft }); }
+  const na = a0 + Math.PI * clamp(val / 6);
+  ctx.strokeStyle = C.ink; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(Math.cos(na) * (r - 30), 20 + Math.sin(na) * (r - 30)); ctx.stroke();
+  ell(0, 20, 12, 12, C.ink);
+  txt('test limit: 4', 0, 60, { size: 22, weight: 700, color: C.coralD });
+  txt(val.toFixed(1), 0, -r * .35, { size: 34, weight: 700 });
+  ctx.restore();
+}
+scene(15, t => {
+  heading('Exhibit B: doping', t);
+  const h = hop(t, 2.6, 10);
+  const phase2 = t > 6.5;
+  // spirit sign
+  at(330, 250, pop(t, .8), () => {
+    ctx.rotate(-.04);
+    card(-190, -60, 380, 120, C.sun, 22);
+    txt('No doping.', 0, -16, { size: 40, weight: 700 }); txt('Period.', 0, 26, { size: 34, weight: 700, color: C.coralD });
+  }, phase2 ? 1 - prog(t, 6.5, .4) : 1);
+  const bx = phase2 ? lerp(330, 280, easeIO(prog(t, 6.5, .6))) : 330;
+  blob(bx, 470, 58, C.sky, { t, ...h, headband: true, mood: phase2 && t > 9.5 ? 'sly' : 'happy', look: phase2 ? [1, -.3] : [0, 0] });
+  if (phase2 && t > 9.2) at(bx + 90, 380, pop(t, 9.4), () => { bubble(-10, -40, 250, 60, -40, 40); txt('Technically fine!', 115, -10, { size: 26, weight: 600 }); });
+  // gauge
+  const v = t < 7 ? 1 : lerp(1, 3.9, easeIO(prog(t, 7.5, 2))) + Math.sin(t * 7) * .04 * (t > 9.5);
+  at(880, 385, pop(t, 6.8, .5), () => { gauge(0, 0, 170, Math.min(v, 3.97), t); txt('hormone ratio (T/E)', 0, -186, { size: 22, weight: 800, font: 'Nunito', color: C.soft }); });
+  captions(t, [[.8, 'In spirit, the doping rule is categorical: no doping, period.'],
+               [6.8, 'But bodies make some of these substances naturally, so tests need numeric cutoffs…'],
+               [10.6, '…and a cutoff invites micro-dosing to live just under the line. (Categorical is better in spirit, but here it’s hard to enforce.)']]);
+});
+
+// 7. Ranking podium
+scene(11, t => {
+  heading('So here’s the ranking', t);
+  const base = 560;
+  const steps = [
+    { x: 640, h: 200, c: C.gold, n: '1', name: 'Categorical', q: '“Never.”', col: C.mint, mood: 'joy', d: 2.4 },
+    { x: 400, h: 140, c: C.silver, n: '2', name: 'Precise threshold', q: '“Max 4.0”', col: C.sky, mood: 'happy', d: 1.4 },
+    { x: 880, h: 90, c: C.bronze, n: '3', name: 'Vague threshold', q: '“Not too much…?”', col: C.peach, mood: 'dizzy', d: .6 },
+  ];
+  for (const s of steps) {
+    const p = easeOut(prog(t, s.d, .5));
+    if (p <= 0) continue;
+    const hh = s.h * p;
+    ctx.save(); rr(s.x - 110, base - hh, 220, hh, 10); ctx.fillStyle = s.c; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    if (p > .5) txt(s.n, s.x, base - hh + 42, { size: 48, weight: 700, color: C.white, stroke: C.ink, strokeW: 6 });
+    ctx.restore();
+    at(s.x, base - s.h - 60, pop(t, s.d + .4), () => blob(0, 0, 44, s.col, { t, ...hop(t, 2, s.n === '1' ? 12 : 4, s.d), mood: s.mood, cheer: s.n === '1' }));
+    at(s.x, base - s.h - 150, pop(t, s.d + .7), () => { txt(s.name, 0, -16, { size: 26, weight: 700 }); txt(s.q, 0, 16, { size: 22, weight: 800, font: 'Nunito', color: C.soft }); });
+  }
+  at(640, base - 200 - 205, pop(t, 3.4), () => { sparkle(-120, 0, 1, t); sparkle(120, 10, .9, t); });
+  captions(t, [[.6, 'Categorical beats threshold, and a precise number beats a vague one.'],
+               [5.6, 'A speed limit with no number on the sign isn’t much of a limit: everyone gets to decide what “too fast” means.']]);
+});
+
+// 8. Neuralese intro
+scene(15, t => {
+  heading('Now: AI and “neuralese”', t);
+  const neural = t > 7.2;
+  // robot
+  blob(320, 470, 62, C.lav, { t, ...hop(t, 1.4, 5), antenna: true, mood: neural ? 'sly' : 'happy', blink: .4 });
+  // thought bubble
+  at(360, 250, pop(t, 1, .5), () => {
+    bubble(-230, -120, 460, 200, -60, 150, neural ? '#F1ECFF' : C.white, true);
+    if (!neural) {
+      const lines = ['Step 1: read the task', 'Step 2: check the tests', 'Step 3: write the fix ✔'];
+      lines.forEach((ln, i) => { const n = Math.floor((t - 1.6 - i * 1.1) * 30); if (n > 0) txt(ln.slice(0, n), -195, -70 + i * 50, { size: 28, weight: 600, align: 'left' }); });
+    } else {
+      ctx.save(); rr(-220, -110, 440, 180, 26); ctx.clip();
+      for (let i = 0; i < 6; i++) {
+        let s = '['; for (let j = 0; j < 5; j++) { const v = Math.sin(i * 12.9 + j * 78.2 + Math.floor(t * 8 + i)) * 9; s += v.toFixed(2) + (j < 4 ? ', ' : ''); }
+        s += ', …]';
+        const y = -90 + i * 34 - ((t * 40) % 34);
+        txt(s, -205, y, { size: 22, weight: 700, font: 'Nunito', align: 'left', color: C.lavD });
+      }
+      ctx.restore();
+    }
+  });
+  // human with magnifier
+  const hx = 930;
+  blob(hx, 470, 58, C.mint, { t, ...hop(t, 1.2, 4, .5), mood: neural ? 'dizzy' : 'happy', look: [-1, -.5], blink: 1.3 });
+  at(hx - 80, 420, pop(t, 1.3), () => { ctx.rotate(-.6 + Math.sin(t * 2) * .08); ctx.fillStyle = C.bronze; rr(-6, 20, 12, 70, 6); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke(); ell(0, 0, 30, 30, 'rgba(142,201,245,.45)'); ctx.lineWidth = 6; ctx.stroke(); });
+  if (!neural && t > 4.6) at(hx + 60, 330, pop(t, 4.6), () => { ell(0, 0, 32, 32, C.mint); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke(); txt('✔', 0, 2, { size: 34, weight: 700, color: C.white }); });
+  if (neural) for (let i = 0; i < 3; i++) at(hx - 50 + i * 55, 340 - Math.abs(Math.sin(t * 3 + i)) * 12, pop(t, 7.6 + i * .2), () => txt('?', 0, 0, { size: 50, weight: 700, color: C.coral, stroke: C.ink, strokeW: 5 }));
+  captions(t, [[.8, 'Many AI models “think out loud” in words first: a chain of thought that humans can actually read.'],
+               [7.4, 'Neuralese means the model reasons in raw number-vectors instead. If it were scheming, we’d never see it.']]);
+});
+
+// 9. Neuralese isn't one thing -> threshold erosion
+scene(17, t => {
+  heading('The catch: neuralese isn’t one thing', t);
+  const x0 = 170, x1 = 1110, ty = 400;
+  const tabooStart = .86;
+  at(640, ty, pop(t, .6), () => {
+    ctx.translate(-640, 0);
+    rr(x0, -16, x1 - x0, 32, 16); ctx.fillStyle = '#fff'; ctx.fill();
+    rr(x0, -16, (x1 - x0) * tabooStart, 32, 16); ctx.fillStyle = 'rgba(127,216,190,.55)'; ctx.fill();
+    const tx = lerp(x0, x1, tabooStart);
+    ctx.save(); const glow = .5 + .5 * Math.sin(t * 4); ctx.shadowColor = C.coral; ctx.shadowBlur = 10 + glow * 10;
+    rr(tx, -16, x1 - tx, 32, 16); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    rr(x0, -16, x1 - x0, 32, 16); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    txt('all readable words', x0, 50, { size: 22, weight: 800, font: 'Nunito', align: 'left', color: C.mintD });
+    txt('“true” neuralese', x1, 50, { size: 22, weight: 800, font: 'Nunito', align: 'right', color: C.coralD });
+    at(lerp(tx, x1, .5), -60, pop(t, 2, .5), () => { card(-62, -22, 124, 44, C.coral, 14); txt('TABOO', 0, 1, { size: 24, weight: 700, color: C.white }); });
+  });
+  // steps with little labels that pile up
+  const steps = [[5.4, .3, 'a few hidden steps'], [7.2, .47, 'a recurrent loop'], [9, .64, 'compressed notes'], [10.8, .8, 'mostly latent']];
+  let f = 0;
+  for (const [s, v] of steps) if (t >= s) f = lerp(f, v, easeIO(prog(t, s, .9)));
+  steps.forEach(([s, v, lab], i) => {
+    if (t < s + .3) return;
+    const x = lerp(x0, x1, v), up = i % 2 === 0;
+    at(x, ty + (up ? 110 : 150), pop(t, s + .3, .4), () => {
+      const w = tw(lab, { size: 20, weight: 700 }) + 26; card(-w / 2, -18, w, 36, C.white, 18, false); txt(lab, 0, 1, { size: 20, weight: 700, color: C.lavD });
+    });
+    ctx.save(); ctx.globalAlpha *= prog(t, s + .3, .4); ctx.fillStyle = C.lavD; ctx.fillRect(x - 1.5, ty + 16, 3, up ? 76 : 116); ctx.restore();
+  });
+  const kx = lerp(x0 + 50, x1, f);
+  const each = t > 5 ? [[5.8, 'Only a little!'], [7.6, 'Still has *some* words'], [9.4, 'Not *true* neuralese'], [11.2, 'Technically not taboo…']] : [];
+  let say = null, sayT = 0; for (const [s, l] of each) if (t >= s) { say = l; sayT = s; }
+  blob(kx, ty - 70, 42, C.lav, { t, ...hop(t, 2.6, 6), antenna: true, mood: f > .7 ? 'sly' : 'happy', look: [1, 0] });
+  if (say) at(kx, ty - 160, pop(t, sayT, .35), () => {
+    const w = tw(say, { size: 22, weight: 600 }) + 36; const bx = clamp(-w / 2, 40 - kx, W - 40 - kx - w);
+    bubble(bx, -30, w, 48, 0, 36); txt(say, bx + w / 2, -6, { size: 22, weight: 600 });
+  });
+  captions(t, [[.6, 'There’s an informal taboo on “true” neuralese: AIs with no readable chain of thought at all.'],
+               [5.2, 'But it’s complicated tech with many moving parts, and no agreement on which part the taboo covers.'],
+               [11.4, 'So each step looks small, some parts slip through the cracks, and the line quietly slides.']]);
+});
+
+// 10. Takeaway
+scene(11, t => {
+  heading('The takeaway', t);
+  at(640, 205, pop(t, .8, .5), () => { txt('Draw a bright line,', 0, -28, { size: 58, weight: 700, color: C.mintD }); txt('not a dial.', 0, 38, { size: 58, weight: 700, color: C.coralD }); });
+  const glow = .5 + .5 * Math.sin(t * 3);
+  at(640, 470, pop(t, 1.8, .6), () => {
+    ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 24 + glow * 24; rr(-14, -150, 28, 210, 14); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    rr(-14, -150, 28, 210, 14); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+  });
+  // human and AI together on the safe side
+  at(400, 480, pop(t, 2.6), () => blob(0, 0, 56, C.mint, { t, ...hop(t, 2, 10), mood: 'joy', cheer: true }));
+  at(250, 480, pop(t, 3), () => blob(0, 0, 50, C.lav, { t, ...hop(t, 2, 10, .4), mood: 'joy', antenna: true, cheer: true }));
+  at(870, 440, pop(t, 3.6), () => { card(-150, -50, 300, 100, '#FFF3EE', 20); txt('Everyone can', 0, -14, { size: 26, weight: 600 }); txt('see this line.', 0, 18, { size: 26, weight: 600 }); });
+  for (const [x, y, d] of [[320, 350, 3.2], [180, 380, 3.4]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1, t));
+  captions(t, [[.8, 'Taboos that last are categorical: crisp enough that everyone knows when one has been broken.'],
+               [5.8, 'If we want a neuralese taboo that holds up, it needs a clear line, not a fuzzy “not too much.”']]);
+});
+
+// 11. Outro
+scene(8, t => {
+  at(640, 300, pop(t, .2, .5), () => {
+    card(-470, -170, 940, 340, C.white, 36);
+    txt('Based on the LessWrong post', 0, -120, { size: 26, weight: 800, font: 'Nunito', color: C.soft });
+    txt('Categorical taboos are much better', 0, -60, { size: 40, weight: 700, color: C.ink });
+    txt('than threshold taboos: neuralese edition', 0, -10, { size: 40, weight: 700, color: C.ink });
+    txt('by Linch Zhang', 0, 50, { size: 32, weight: 700, color: C.lavD });
+    txt('lesswrong.com/posts/xPkmfsZ3qx4nrAco7', 0, 110, { size: 24, weight: 800, font: 'Nunito', color: C.skyD });
+  });
+  at(640, 540, pop(t, 1.4), () => txt('(unofficial fan-made explainer; go read the real thing!)', 0, 0, { size: 24, weight: 800, font: 'Nunito', color: C.soft }));
+  const cast = [[180, C.mint, {}], [1100, C.lav, { antenna: true }], [250, C.peach, {}], [1030, C.sky, { headband: true }]];
+  cast.forEach(([x, c, o], i) => at(x, i < 2 ? 520 : 640, pop(t, 1 + i * .25), () => blob(0, 0, i < 2 ? 54 : 40, c, { t, ...hop(t, 2, 10, i * .3), mood: 'joy', wave: true, ...o })));
+});
+
+// ================= timeline =================
+const starts = []; let acc = 0; for (const s of scenes) { starts.push(acc); acc += s.dur; }
+const TOTAL = acc;
+window.TOTAL = TOTAL; window.SCENE_STARTS = starts;
+
+function renderAt(T) {
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1;
+  background(T);
+  let i = scenes.length - 1; while (i > 0 && T < starts[i]) i--;
+  const lt = T - starts[i], d = scenes[i].dur;
+  ctx.save(); scenes[i].draw(lt); ctx.restore();
+  // fade in/out between scenes
+  const fin = i === 0 ? 1 : prog(lt, 0, .3), fout = i === scenes.length - 1 ? prog(d - lt, 0, .8) : prog(d - lt, 0, .3);
+  const a = 1 - Math.min(fin, fout);
+  if (a > 0) { ctx.globalAlpha = a; ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+}
+window.renderAt = renderAt;
+
+// live playback when opened in a browser (renderer disables this)
+window.ready = document.fonts.load('700 20px Fredoka').then(() => Promise.all(['400 20px Fredoka', '600 20px Fredoka', '800 20px Nunito', '700 20px Nunito'].map(f => document.fonts.load(f))));
+if (!location.hash.includes('render')) {
+  window.ready.then(() => { const t0 = performance.now(); (function loop() { renderAt(((performance.now() - t0) / 1000) % TOTAL); requestAnimationFrame(loop); })(); });
+}
+</script>
+</body>
+</html>

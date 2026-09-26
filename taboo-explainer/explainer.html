@@ -242,79 +242,189 @@ scene(7.5, t => {
   for (const [x, y, d] of [[170, 150, 1.8], [1120, 190, 2], [940, 110, 2.2]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1.2, t));
 });
 
-// 2. Two ways to draw a line
-scene(13, t => {
-  heading('Two ways to draw a line', t);
-  // left panel: categorical
-  at(345, 330, pop(t, .6), () => {
-    card(-255, -210, 510, 400, '#F2FBF7');
-    txt('CATEGORICAL', 0, -175, { size: 30, weight: 700, color: C.mintD });
-    // ground + bright line
-    ctx.fillStyle = '#E6F4EE'; ctx.fillRect(-240, 90, 480, 10);
-    const glow = .5 + .5 * Math.sin(t * 4);
-    ctx.save(); ctx.shadowColor = C.coral; ctx.shadowBlur = 18 + glow * 14;
-    rr(20, -120, 16, 230, 8); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
-    rr(20, -120, 16, 230, 8); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
-    // sign
-    at(140, -40, pop(t, 1.4), () => { ctx.fillStyle = C.ink; ctx.fillRect(-4, 0, 8, 120); card(-72, -38, 144, 64, C.sun, 14); txt('NEVER.', 0, -5, { size: 32, weight: 700 }); });
-    const h = hop(t, 1.6, 6);
-    blob(-110, 38, 52, C.mint, { t, ...h, mood: 'happy', look: [1, 0] });
-    txt('“Just don’t.”', -100, 150, { size: 30, weight: 600, color: C.mintD, alpha: prog(t, 2, .4) });
+// 2. The debate
+scene(12, t => {
+  heading('The debate: does Astra use neuralese?', t);
+  at(640, 250, pop(t, .6, .5), () => {
+    ctx.rotate(-.02);
+    card(-360, -95, 720, 190, C.white, 22);
+    rr(-360, -95, 720, 44, 22); ctx.fillStyle = C.bg2; ctx.fill();
+    txt('TECH NEWS  ·  SEPTEMBER 2026', 0, -72, { size: 20, weight: 800, font: 'Nunito', color: C.soft });
+    txt('“OpenAI’s new reasoning technique', 0, -16, { size: 34, weight: 700 });
+    txt('alarms AI safety experts”', 0, 26, { size: 34, weight: 700 });
+    txt('(TechCrunch headline)', 0, 66, { size: 20, weight: 800, font: 'Nunito', color: C.soft });
   });
-  // right panel: threshold
-  at(935, 330, pop(t, 5.2), () => {
-    const lt = t - 5.2;
-    card(-255, -210, 510, 400, '#FFF3EE');
-    txt('THRESHOLD', 0, -175, { size: 30, weight: 700, color: C.coralD });
-    // ruler
-    rr(-220, 92, 440, 22, 11); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
-    for (let i = 0; i <= 10; i++) { const x = -210 + i * 42; ctx.fillStyle = C.ink; ctx.fillRect(x - 1, 92, 3, i % 5 ? 8 : 14); }
-    rr(-210, 94, 42 * 7, 18, 9); ctx.fillStyle = 'rgba(127,216,190,.5)'; ctx.fill();
-    rr(84, 94, 126, 18, 9); ctx.fillStyle = 'rgba(255,107,107,.45)'; ctx.fill();
-    // N marker
-    ctx.setLineDash([8, 7]); ctx.strokeStyle = C.coralD; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(84, -120); ctx.lineTo(84, 92); ctx.stroke(); ctx.setLineDash([]);
-    at(150, -80, pop(t, 6), () => { card(-80, -36, 160, 72, C.white, 14); txt('Not more', 0, -12, { size: 22, weight: 600 }); txt('than N', 0, 14, { size: 22, weight: 600 }); });
-    // blob inching toward N
-    const p = easeIO(prog(lt, 1.2, 5.5));
-    const x = lerp(-170, 36, p) + Math.sin(lt * 2) * 2 * (p > .98);
-    const h = hop(lt, 3, p < .99 ? 5 : 1);
-    blob(x, 38, 48, C.peach, { t, ...h, mood: p > .9 ? 'sly' : 'o', look: [1, -.3], blink: .7 });
-    txt('“A little is fine…”', -60, -120, { size: 26, weight: 600, color: C.coralD, alpha: prog(lt, 1.6, .4) });
-  });
-  captions(t, [[.8, 'Some taboos are categorical: a bright line you simply don’t cross.'],
-               [5.4, 'Others are thresholds: “some is fine, just not too much.” And people tend to creep right up to the edge.']]);
+  const worried = t > 5.2;
+  at(290, 490, pop(t, 1.6), () => blob(0, 0, 50, C.mint, { t, ...hop(t, 2, worried ? 3 : 8), mood: worried ? 'worried' : 'o', sweat: worried, look: [1, -.4] }));
+  at(990, 490, pop(t, 2.2), () => blob(0, 0, 50, C.lav, { t, ...hop(t, 1.6, 6, .3), antenna: true, mood: 'happy', look: [-1, -.2], blink: .6 }));
+  if (t > 5.2) at(290, 390, pop(t, 5.2, .35), () => { bubble(-20, -34, 270, 52, 0, 38); txt('Is that neuralese?!', 115, -8, { size: 24, weight: 600 }); });
+  if (t > 7.4) at(990, 390, pop(t, 7.4, .35), () => { bubble(-300, -34, 320, 52, 0, 38); txt('Not really: depth is ~2× GPT-4!', -140, -8, { size: 22, weight: 600 }); });
+  captions(t, [[.8, 'OpenAI’s new model, Astra, sends its thoughts back through some of its layers in a loop (“recurrence”).'],
+               [5.2, 'Safety researchers asked: isn’t that the neuralese we worried about? OpenAI says not really. The answer depends on what “true” neuralese means.']]);
 });
 
-// 3. Nukes, part 1: the weird fact
+// shared: a transformer stack + chain-of-thought scratchpad
+const LAYER_Y = [470, 410, 350, 290];
+function drawStack(t, cx, loop, words, P, segs) {
+  // loop arc
+  if (loop) {
+    ctx.save(); ctx.strokeStyle = C.lavD; ctx.lineWidth = 5; ctx.setLineDash([10, 8]); ctx.lineDashOffset = -t * 30;
+    ctx.beginPath(); ctx.moveTo(cx - 130, LAYER_Y[2]); ctx.bezierCurveTo(cx - 215, LAYER_Y[2], cx - 215, LAYER_Y[1], cx - 130, LAYER_Y[1]); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = C.lavD; ctx.beginPath(); ctx.moveTo(cx - 122, LAYER_Y[1]); ctx.lineTo(cx - 140, LAYER_Y[1] - 10); ctx.lineTo(cx - 140, LAYER_Y[1] + 10); ctx.fill();
+    ctx.restore();
+    txt('loop ×3', cx - 230, (LAYER_Y[1] + LAYER_Y[2]) / 2, { size: 22, weight: 700, color: C.lavD, align: 'right' });
+  }
+  LAYER_Y.forEach((y, i) => {
+    const hl = loop && (i === 1 || i === 2);
+    card(cx - 120, y - 22, 240, 44, hl ? '#E6DEFF' : '#F4F0FF', 14, false);
+    txt('layer ' + (i + 1), cx, y + 1, { size: 20, weight: 700, color: C.lavD });
+  });
+  // return path from scratchpad back to the bottom of the stack
+  ctx.save(); ctx.strokeStyle = C.mintD; ctx.lineWidth = 4; ctx.setLineDash([9, 8]); ctx.lineDashOffset = t * 25;
+  ctx.beginPath(); ctx.moveTo(760, 480); ctx.bezierCurveTo(700, 560, cx + 60, 580, cx, 512); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = C.mintD; ctx.beginPath(); ctx.moveTo(cx, 504); ctx.lineTo(cx - 10, 522); ctx.lineTo(cx + 10, 522); ctx.fill(); ctx.restore();
+  txt('read back in', 560, 572, { size: 20, weight: 800, font: 'Nunito', color: C.mintD });
+  // scratchpad
+  card(700, 150, 460, 320, C.white, 22);
+  txt('chain of thought (readable!)', 930, 180, { size: 22, weight: 700, color: C.mintD });
+  const c = t - 1.2; if (c < 0) return;
+  const k = Math.floor(c / P), u = (c % P) / P;
+  // lay out words
+  const pos = []; let x = 725, y = 225;
+  for (const wd of words) { const w = tw(wd, { size: 26, weight: 600 }) + 12; if (x + w > 1140) { x = 725; y += 42; } pos.push([x, y]); x += w; }
+  for (let i = 0; i < Math.min(k, words.length); i++) txt(words[i], pos[i][0], pos[i][1], { size: 26, weight: 600, align: 'left' });
+  // the moving thought
+  const sPart = segs.length > 1 ? .75 : .6;
+  if (u < sPart) {
+    const f = u / sPart * (segs.length - 1), i = Math.floor(f), s = f - i;
+    const a = segs[i], b = segs[Math.min(i + 1, segs.length - 1)];
+    const ya = a < 0 ? 520 : a > 3 ? 250 : LAYER_Y[a], yb = b < 0 ? 520 : b > 3 ? 250 : LAYER_Y[b];
+    const dx = b < a ? -175 * Math.sin(Math.PI * s) : 0;
+    const dxx = cx + dx + 150, dy = lerp(ya, yb, s);
+    ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 20; ell(cx + dx, dy, 13, 13, C.sun); ctx.restore();
+    ell(cx + dx, dy, 13, 13); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+    if (b >= 0 && a >= 0) txt('[0.4, 0.1, 5, …]', dxx + (dx < 0 ? -dx : 0) - 20, dy, { size: 18, weight: 800, font: 'Nunito', color: C.lavD, align: 'left', alpha: .9 });
+  } else if (k < words.length) {
+    const s = easeIO((u - sPart) / (1 - sPart)), [tx, ty] = pos[k];
+    const qx = lerp(lerp(cx, 560, s), lerp(560, tx + 30, s), s), qy = lerp(lerp(250, 120, s), lerp(120, ty, s), s);
+    at(qx, qy, 1, () => { const w = tw(words[k], { size: 24, weight: 600 }) + 20; card(-w / 2, -18, w, 36, C.sun, 12, false); txt(words[k], 0, 1, { size: 24, weight: 600 }); });
+  }
+}
+
+// 3. How a model thinks normally
+scene(15, t => {
+  heading('How a model normally thinks', t);
+  const words = ['Hmm,', 'this', 'looks', 'like', 'a', 'differential', 'equation…', 'maybe', 'substitute', 'u', '=', 'x²?'];
+  at(0, 0, 1, () => drawStack(t, 330, false, words, 1.1, [-1, 0, 1, 2, 3, 4]), prog(t, .4, .5));
+  at(1085, 520, pop(t, 2), () => blob(0, 0, 36, C.mint, { t, ...hop(t, 1.4, 4), mood: 'happy', look: [-1, -1] }));
+  if (t > 5) at(1010, 505, pop(t, 5), () => { ell(0, 0, 22, 22, C.mint); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke(); txt('✔', 0, 1, { size: 24, weight: 700, color: C.white }); });
+  captions(t, [[.6, 'A model thinks through a stack of layers (frontier models have ~100). Between layers, its thoughts are vectors, already unreadable.'],
+               [7.6, 'To keep thinking, it writes a token onto its chain of thought and runs again. So every loop passes through words we can read.']]);
+});
+
+// 4. Recurrence
+scene(14, t => {
+  heading('Recurrence: looping without words', t);
+  const words = ['So', 'the', 'answer', 'is…', '42.'];
+  at(0, 0, 1, () => drawStack(t, 400, true, words, 2.6, [-1, 0, 1, 2, 1, 2, 1, 2, 3, 4]), prog(t, .4, .5));
+  const c = t - 1.2, u = c > 0 ? (c % 2.6) / 2.6 : 1, looping = u < .75;
+  at(1085, 520, pop(t, 2), () => blob(0, 0, 36, C.mint, { t, ...hop(t, 1.4, 4), mood: looping ? 'o' : 'happy', look: [-1, -1] }));
+  if (looping && t > 2) at(1145, 490, 1, () => txt('?', 0, -Math.abs(Math.sin(t * 4)) * 8, { size: 40, weight: 700, color: C.coral, stroke: C.ink, strokeW: 5 }));
+  at(400, 205, pop(t, 3.2), () => { const s = 'path: 1→2→3→2→3→2→3→4', w = tw(s, { size: 18, weight: 700 }) + 36; card(-w / 2, -22, w, 44, C.white, 22); txt(s, 0, 1, { size: 18, weight: 700 }); });
+  captions(t, [[.6, 'With recurrence, the thought goes back down for more passes before anything is written. Path: 1→2→3→2→3→2→3→4. That’s a depth of 8.'],
+               [7.6, 'Those extra passes happen in vectors, not words. Take this far enough and a model could think its whole plan where no one can read it.']]);
+});
+
+// 5. Two definitions
+scene(19, t => {
+  heading('Two definitions of “true” neuralese', t);
+  // #1 categorical
+  at(350, 310, pop(t, .8), () => {
+    card(-265, -195, 530, 390, '#F2FBF7');
+    txt('#1  CATEGORICAL', 0, -160, { size: 30, weight: 700, color: C.mintD });
+    txt('Does the thought loop back', 0, -110, { size: 26, weight: 600 }); txt('without passing through words?', 0, -76, { size: 26, weight: 600 });
+    // mini loop icon
+    ctx.save(); ctx.translate(0, 5); ctx.rotate(t * 1.5);
+    ctx.strokeStyle = C.lavD; ctx.lineWidth = 7; ctx.beginPath(); ctx.arc(0, 0, 40, .3, Math.PI * 2 - .3); ctx.stroke();
+    ctx.fillStyle = C.lavD; ctx.beginPath(); ctx.moveTo(44, 8); ctx.lineTo(28, 22); ctx.lineTo(54, 26); ctx.fill(); ctx.restore();
+    txt('Yes → true neuralese', 0, 90, { size: 28, weight: 700, color: C.coralD });
+    at(0, 148, pop(t, 3.4), () => { const s = 'Linch’s pick: cleaner, easier to enforce'; const w = tw(s, { size: 20, weight: 700 }) + 36; card(-w / 2, -20, w, 40, C.mint, 20, false); txt(s, 0, 1, { size: 20, weight: 700 }); });
+  });
+  // #2 threshold
+  at(930, 310, pop(t, 8.2), () => {
+    card(-265, -195, 530, 390, '#FFF3EE');
+    txt('#2  THRESHOLD', 0, -160, { size: 30, weight: 700, color: C.coralD });
+    txt('How many serial steps', 0, -110, { size: 26, weight: 600 }); txt('before words appear?', 0, -76, { size: 26, weight: 600 });
+    rr(-190, -8, 380, 26, 13); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+    const fill = .2 + .55 * (0.5 + 0.5 * Math.sin(t * 1.3));
+    rr(-190, -8, 380 * fill, 26, 13); ctx.fillStyle = C.peach; ctx.fill(); ctx.stroke();
+    ctx.setLineDash([7, 6]); ctx.strokeStyle = C.coralD; ctx.beginPath(); ctx.moveTo(110, -28); ctx.lineTo(110, 38); ctx.stroke(); ctx.setLineDash([]);
+    txt('X = ?', 110, 52, { size: 22, weight: 700, color: C.coralD });
+    txt('Over X → true neuralese', 0, 90, { size: 28, weight: 700, color: C.coralD });
+    at(0, 148, pop(t, 10.6), () => { const s = 'Most experts’ pick: more causally relevant'; const w = tw(s, { size: 20, weight: 700 }) + 36; card(-w / 2, -20, w, 40, C.peach, 20, false); txt(s, 0, 1, { size: 20, weight: 700 }); });
+  });
+  captions(t, [[.8, 'Definition #1 (Linch’s preference): words normally sit inside every loop, so any recurrence in neuralese counts as “true” neuralese. A clean category.'],
+               [8.4, 'Definition #2 (most technical experts’ preference): count serial steps before words appear; above some X, it’s neuralese.'],
+               [13.4, 'Their reasoning: 128 layers looped 8× is no harder to monitor than 1,024 real layers. Fair point, but X has to be written down somewhere.']]);
+});
+
+// 6. Speed limit with no number
+scene(14, t => {
+  heading('The trouble with #2', t);
+  // road
+  ctx.fillStyle = '#B9B3C4'; ctx.fillRect(0, 430, W, 90); ctx.fillStyle = '#fff';
+  for (let x = -((t * 160) % 80); x < W; x += 80) ctx.fillRect(x, 472, 44, 7);
+  // sign
+  at(900, 250, pop(t, .8, .5), () => {
+    ctx.fillStyle = '#8A8A96'; ctx.fillRect(-6, 100, 12, 150);
+    card(-90, -120, 180, 230, C.white, 16); rr(-78, -108, 156, 206, 10); ctx.lineWidth = 4; ctx.strokeStyle = C.ink; ctx.stroke();
+    txt('SPEED', 0, -76, { size: 30, weight: 700 }); txt('LIMIT', 0, -42, { size: 30, weight: 700 });
+    txt('??', 0, 34, { size: 88, weight: 700, color: C.coralD });
+  });
+  // cop blob, puzzled
+  at(1090, 380, pop(t, 1.6), () => blob(0, 0, 40, C.sky, { t, mood: 'meh', look: [-1, 0], blink: .2 }));
+  if (t > 2) at(1090, 300, 1, () => txt('?', 0, -Math.abs(Math.sin(t * 3)) * 8, { size: 40, weight: 700, color: C.coral, stroke: C.ink, strokeW: 5 }));
+  // zooming blob (loops across)
+  const zx = ((t - 1.4) * 260) % (W + 300) - 150;
+  if (t > 1.4) {
+    ctx.save(); ctx.strokeStyle = 'rgba(59,47,63,.35)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(zx - 70 - i * 6, 455 + i * 14); ctx.lineTo(zx - 120 - i * 16, 455 + i * 14); ctx.stroke(); }
+    ctx.restore();
+    blob(zx, 452, 38, C.lav, { t, ...hop(t, 5, 5), antenna: true, mood: 'joy', tilt: .12 });
+    if (zx > 150 && zx < 760) at(zx, 375, 1, () => { bubble(-150, -30, 300, 48, 0, 34); txt('Am I speeding? Who knows!', 0, -6, { size: 22, weight: 600 }); });
+  }
+  captions(t, [[.6, 'With only definition #2, you can’t break the taboo unless you go above X. But nobody has agreed on X, and frontier models’ layer counts aren’t public.'],
+               [8, 'Speed limits get pushed even at the best of times. A speed limit without a number isn’t a limit at all.']]);
+});
+
+// 7. Nukes, part 1: the weird fact
 function bomb(x, y, s, color, label, t, nuke) {
   at(x, y, s, () => {
     ctx.save(); ctx.rotate(Math.sin(t * 2 + x) * .04);
-    // fins
     ctx.fillStyle = '#9AA3AE'; ctx.beginPath(); ctx.moveTo(-95, 0); ctx.lineTo(-135, -38); ctx.lineTo(-120, 0); ctx.lineTo(-135, 38); ctx.closePath(); ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
     ctx.beginPath(); ctx.ellipse(0, 0, 110, 46, 0, 0, 7); ctx.fillStyle = color; ctx.fill(); ctx.stroke();
-    if (nuke) { // trefoil
-      ctx.fillStyle = C.sun; ell(25, 0, 26, 26, C.sun); ctx.stroke(); ctx.fillStyle = C.ink;
+    if (nuke) {
+      ell(25, 0, 26, 26, C.sun); ctx.stroke(); ctx.fillStyle = C.ink;
       for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(25, 0); ctx.arc(25, 0, 22, i * 2.094 - .5, i * 2.094 + .5); ctx.closePath(); ctx.fill(); }
       ell(25, 0, 6, 6, C.sun);
     }
-    // face
     ell(-35, -8, 6, 9, C.ink); ell(-5, -8, 6, 9, C.ink);
     ctx.lineWidth = 3.5; ctx.beginPath(); ctx.arc(-20, 6, 9, .2, Math.PI - .2); ctx.stroke();
     ctx.restore();
-    txt(label[0], 0, 84, { size: 25, weight: 700 }); txt(label[1], 0, 116, { size: 22, weight: 800, font: 'Nunito', color: C.soft });
+    if (label) { txt(label[0], 0, 84, { size: 25, weight: 700 }); txt(label[1], 0, 116, { size: 22, weight: 800, font: 'Nunito', color: C.soft }); }
   });
 }
-scene(9, t => {
-  heading('Exhibit A: the nuclear taboo', t);
-  bomb(330, 300, pop(t, .8), '#B8C0CA', ['A huge ordinary bomb', '(MOAB) ≈ 11 tons of TNT'], t, false);
-  bomb(950, 300, pop(t, 1.8), C.mint, ['One of the tiniest nukes', '(Davy Crockett) ≈ 10–20 tons'], t, true);
-  at(640, 300, pop(t, 2.8), () => { ell(0, 0, 44, 44, C.sun); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke(); txt('≈', 0, 2, { size: 54, weight: 700 }); });
-  at(640, 470, pop(t, 4.4), () => { blob(0, 0, 40, C.lav, { t, mood: 'o', look: [0, -1], ...hop(t, 1.2, 4) }); });
-  captions(t, [[.8, 'Weird fact: the tiniest nukes are roughly as powerful as the biggest conventional bombs.'],
-               [5, 'So banning nukes (but not big bombs) makes no sense by blast size alone. Why not just ban by size?']]);
+scene(10, t => {
+  heading('Analogy 1: the nuclear taboo', t);
+  bomb(330, 290, pop(t, .8), '#B8C0CA', ['A huge ordinary bomb', '(MOAB) ≈ 11 tons of TNT'], t, false);
+  bomb(950, 290, pop(t, 1.8), C.mint, ['One of the tiniest nukes', '(Davy Crockett) ≈ 10–20 tons'], t, true);
+  at(640, 290, pop(t, 2.8), () => { ell(0, 0, 44, 44, C.sun); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke(); txt('≈', 0, 2, { size: 54, weight: 700 }); });
+  at(640, 470, pop(t, 5), () => { blob(0, 0, 38, C.lav, { t, mood: 'o', look: [0, -1], ...hop(t, 1.2, 4) }); });
+  captions(t, [[.8, 'Here too, the category seems to make no “causal” sense: the smallest tactical nukes are weaker than the biggest conventional bombs.'],
+               [5.6, 'So why a taboo on using nukes in war, and not a limit on bomb size?']]);
 });
 
-// 4. Nukes, part 2: no natural place to stop
+// 8. Nukes, part 2: no natural place to stop
 scene(12, t => {
   heading('Where would a yield limit stop?', t);
   const ticks = [['0.01 kt', 0], ['1 kt', .25], ['15 kt', .5], ['Hiroshima', .5], ['1,000 kt', .75], ['50,000 kt', 1]];
@@ -331,27 +441,24 @@ scene(12, t => {
     }
     txt('yield', x1 + 20, -40, { size: 22, weight: 800, font: 'Nunito', color: C.soft, align: 'right' });
   });
-  // creeping knob with rationalizations
-  const stops = [[1.6, .02, 'Just a teeny one?'], [3.6, .25, 'Well, 1 kt was fine…'], [5.6, .5, 'Only Hiroshima-sized!'], [7.6, .78, 'Where was the line again?']];
+  const stops = [[1.6, .02, 'Just a teeny tactical one?'], [3.6, .25, 'Well, 1 kt was fine…'], [5.6, .5, 'Only Hiroshima-sized!'], [7.6, .78, 'Where was the line again?']];
   let f = 0, say = null, sayT = 0;
-  for (const [s, v, line] of stops) { if (t >= s) { const prev = f; f = lerp(prev, v, easeIO(prog(t, s, .9))); say = line; sayT = s; } }
+  for (const [s, v, line] of stops) { if (t >= s) { f = lerp(f, v, easeIO(prog(t, s, .9))); say = line; sayT = s; } }
   if (t >= 1.2) {
-    const kx = lerp(x0, x1, f);
-    const worried = f > .45;
-    const h = hop(t, 2.4, 8);
-    blob(kx, ty - 95, 44, worried ? C.peach : C.mint, { t, ...h, mood: f > .7 ? 'dizzy' : worried ? 'worried' : 'happy', sweat: worried, look: [1, 0] });
+    const kx = lerp(x0, x1, f), worried = f > .45;
+    blob(kx, ty - 95, 44, worried ? C.peach : C.mint, { t, ...hop(t, 2.4, 8), mood: f > .7 ? 'dizzy' : worried ? 'worried' : 'happy', sweat: worried, look: [1, 0] });
     if (say) at(kx, ty - 190, pop(t, sayT + .3, .35), () => {
       const w = tw(say, { size: 24, weight: 600 }) + 40; const bx = clamp(-w / 2, x0 - 60 - kx, W - 30 - kx - w);
       bubble(bx, -34, w, 52, 0, 38); txt(say, bx + w / 2, -7, { size: 24, weight: 600 });
     });
   }
-  captions(t, [[.6, 'Once “small” nukes are allowed, every next step looks only slightly bigger than the last.'],
-               [6.2, 'There’s no natural place to stop. A yield number has no focal point.']]);
+  captions(t, [[.6, 'Thomas Schelling’s answer: a line based on yield has no focal point.'],
+               [4.8, 'Once “tactical” nuclear use is allowed, there’s no natural place to stop.']]);
 });
 
-// 5. Nukes, part 3: the bright line held
-scene(9, t => {
-  heading('“No nukes, ever” is a focal point', t);
+// 9. Nukes, part 3: the bright line held
+scene(10, t => {
+  heading('“No nukes in war” is a focal point', t);
   const glow = .5 + .5 * Math.sin(t * 3);
   at(640, 330, pop(t, .7, .6), () => {
     ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 30 + glow * 30;
@@ -362,11 +469,11 @@ scene(9, t => {
   const kids = [[330, C.mint, 0], [470, C.sky, .3], [810, C.lav, .6], [950, C.peach, .9]];
   kids.forEach(([x, c, d], i) => at(x, 460, pop(t, 2.4 + d), () => blob(0, 0, 42, c, { t, ...hop(t, 2.2, 12, d), mood: 'joy', cheer: true, antenna: i === 2 })));
   for (const [x, y, d] of [[200, 250, 3], [1080, 230, 3.3], [640, 440, 3.6]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1.3, t));
-  captions(t, [[.8, '“No nukes. Period.” is simple, visible, and everyone knows exactly when it’s broken.'],
-               [4.6, 'Because anyone can see the line, it has held for about eighty years.']]);
+  captions(t, [[.8, 'So scholars, activists, and farseeing world leaders settled on the categorical line instead.'],
+               [5, 'Everyone can tell when it’s been crossed, and it has held since 1945.']]);
 });
 
-// 6. Doping
+// 10. Doping
 function gauge(x, y, r, val, t) {
   ctx.save(); ctx.translate(x, y);
   card(-r - 30, -r - 40, 2 * r + 60, r + 110, C.white, 26);
@@ -378,161 +485,127 @@ function gauge(x, y, r, val, t) {
   const na = a0 + Math.PI * clamp(val / 6);
   ctx.strokeStyle = C.ink; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(Math.cos(na) * (r - 30), 20 + Math.sin(na) * (r - 30)); ctx.stroke();
   ell(0, 20, 12, 12, C.ink);
-  txt('test limit: 4', 0, 60, { size: 22, weight: 700, color: C.coralD });
+  txt('test threshold', 0, 60, { size: 22, weight: 700, color: C.coralD });
   txt(val.toFixed(1), 0, -r * .35, { size: 34, weight: 700 });
   ctx.restore();
 }
-scene(15, t => {
-  heading('Exhibit B: doping', t);
-  const h = hop(t, 2.6, 10);
-  const phase2 = t > 6.5;
-  // spirit sign
+scene(18, t => {
+  heading('Analogy 2: doping', t);
+  const phase2 = t > 6, phase3 = t > 11;
   at(330, 250, pop(t, .8), () => {
     ctx.rotate(-.04);
     card(-190, -60, 380, 120, C.sun, 22);
     txt('No doping.', 0, -16, { size: 40, weight: 700 }); txt('Period.', 0, 26, { size: 34, weight: 700, color: C.coralD });
-  }, phase2 ? 1 - prog(t, 6.5, .4) : 1);
-  const bx = phase2 ? lerp(330, 280, easeIO(prog(t, 6.5, .6))) : 330;
-  blob(bx, 470, 58, C.sky, { t, ...h, headband: true, mood: phase2 && t > 9.5 ? 'sly' : 'happy', look: phase2 ? [1, -.3] : [0, 0] });
-  if (phase2 && t > 9.2) at(bx + 90, 380, pop(t, 9.4), () => { bubble(-10, -40, 250, 60, -40, 40); txt('Technically fine!', 115, -10, { size: 26, weight: 600 }); });
-  // gauge
-  const v = t < 7 ? 1 : lerp(1, 3.9, easeIO(prog(t, 7.5, 2))) + Math.sin(t * 7) * .04 * (t > 9.5);
-  at(880, 385, pop(t, 6.8, .5), () => { gauge(0, 0, 170, Math.min(v, 3.97), t); txt('hormone ratio (T/E)', 0, -186, { size: 22, weight: 800, font: 'Nunito', color: C.soft }); });
-  captions(t, [[.8, 'In spirit, the doping rule is categorical: no doping, period.'],
-               [6.8, 'But bodies make some of these substances naturally, so tests need numeric cutoffs…'],
-               [10.6, '…and a cutoff invites micro-dosing to live just under the line. (Categorical is better in spirit, but here it’s hard to enforce.)']]);
+  }, phase2 ? 1 - prog(t, 6, .4) : 1);
+  const bx = phase2 ? lerp(330, 250, easeIO(prog(t, 6, .6))) : 330;
+  blob(bx, 470, 58, C.sky, { t, ...hop(t, 2.6, 10), headband: true, mood: phase3 ? 'sly' : 'happy', look: phase2 ? [1, -.3] : [0, 0] });
+  const v = t < 6.4 ? 1 : lerp(1, 3.6, easeIO(prog(t, 6.8, 1.6))) + Math.sin(t * 7) * .03;
+  at(900, 385, pop(t, 6.2, .5), () => {
+    gauge(0, 0, 170, v, t); txt('a hormone ratio', 0, -186, { size: 22, weight: 800, font: 'Nunito', color: C.soft });
+    at(150, -168, pop(t, 8.8), () => { ctx.rotate(.15); card(-58, -20, 116, 40, C.mint, 10, false); txt('PASS ✔', 0, 1, { size: 22, weight: 700 }); });
+  });
+  if (phase3) at(bx + 90, 360, pop(t, 11), () => { bubble(-10, -40, 290, 60, -40, 40); txt('I never failed a test!', 135, -10, { size: 26, weight: 600 }); });
+  if (t > 13.4) {
+    [[560, C.peach, 0], [640, C.mint, .3]].forEach(([x, c, d]) => at(x, 540, pop(t, 13.4 + d), () => blob(0, 0, 30, c, { t, mood: 'meh', look: [-1, 0], blink: d })));
+    at(600, 450, pop(t, 14.2), () => { bubble(-130, -28, 260, 48, -20, 34); txt('…we saw you dope.', 0, -4, { size: 22, weight: 600 }); });
+  }
+  captions(t, [[.8, 'WADA’s official definition of doping is categorical: no doping, period.'],
+               [6.2, 'But tests have error rates, and some substances occur naturally in the body. So in practice, numeric thresholds are the tool: a proxy for the real rule.'],
+               [11.2, 'When Lance Armstrong bragged he “never failed a test,” nobody took that as proof he was clean. His teammates’ testimony caught him in the end.']]);
 });
 
-// 7. Ranking podium
+// 11. Letter vs spirit
+scene(13, t => {
+  heading('Letter vs. spirit', t);
+  const panel = (x, d, fill, title, tcol, lines, col, mood) => at(x, 270, pop(t, d), () => {
+    card(-255, -140, 510, 280, fill);
+    txt(title, 0, -100, { size: 30, weight: 700, color: tcol });
+    lines.forEach((ln, i) => txt(ln, 0, -40 + i * 40, { size: 26, weight: 600 }));
+    blob(0, 190, 40, col, { t, ...hop(t, 1.6, 5, d), mood });
+  });
+  panel(350, .8, '#F4F0FF', 'AS LAW', C.lavD, ['Thresholds may be the', 'practical choice. It’s fair not', 'to punish people who kept', 'the letter of the rule.'], C.lav, 'happy');
+  panel(930, 6.4, '#FFF3EE', 'AS A SOCIETY', C.coralD, ['We should still feel free', 'to criticize people and', 'institutions who break', 'the spirit of a norm.'], C.peach, 'o');
+  captions(t, [[.8, 'For practical reasons, regulations may need thresholds, and legal penalties can stick to the letter of the law.'],
+               [6.6, 'Socially, though, we should be comfortable criticizing people and institutions who break a norm’s spirit, even when they kept its letter.']]);
+});
+
+// 12. Small still counts
+scene(16, t => {
+  heading('“Just a little” still counts', t);
+  const vign = [
+    [250, 1, C.mint, {}, 'A small, defensive one!'],
+    [640, 2.2, C.sky, { headband: true }, 'Only in training!'],
+    [1030, 3.4, C.lav, { antenna: true }, 'Total depth isn’t high!'],
+  ];
+  vign.forEach(([x, d, c, o, say], i) => {
+    at(x, 370, pop(t, d), () => {
+      blob(0, 0, 44, c, { t, ...hop(t, 1.8, 5, i * .4), mood: t > 9 ? 'worried' : 'happy', sweat: t > 9, ...o });
+      if (i === 0) bomb(95, 20, .32, C.mint, null, t, true);
+      at(0, -118, pop(t, d + .4, .35), () => { const w = tw(say, { size: 22, weight: 600 }) + 36; bubble(-w / 2, -30, w, 48, 0, 36); txt(say, 0, -6, { size: 22, weight: 600 }); });
+    });
+  });
+  at(640, 490, pop(t, 8.4, .5), () => {
+    rr(-560, -10, 1120, 20, 10); ctx.fillStyle = C.coral; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke();
+    ctx.fillStyle = C.bg; ctx.beginPath(); ctx.moveTo(-20, -12); ctx.lineTo(4, -2); ctx.lineTo(-10, 4); ctx.lineTo(14, 12); ctx.lineTo(24, 12); ctx.lineTo(10, 3); ctx.lineTo(22, -4); ctx.lineTo(0, -12); ctx.fill();
+  });
+  at(640, 490, pop(t, 9, .45), () => { ctx.rotate(-.04); card(-190, -26, 380, 52, C.white, 14); txt('…but it still breaks the taboo', 0, 1, { size: 26, weight: 700, color: C.coralD }); });
+  captions(t, [[.8, 'OpenAI’s defenses: Astra’s total serial depth isn’t very high, and calling neuralese a done deal could start a race toward it. Linch mostly agrees, as far as they go.'],
+               [9, 'But a small, defensive tactical nuke still breaks the nuclear taboo, and doping only in training is still doping. “Less bad” isn’t “not a break.”']]);
+});
+
+// 13. Ranking podium
 scene(11, t => {
   heading('So here’s the ranking', t);
-  const base = 560;
+  const base = 540;
   const steps = [
-    { x: 640, h: 200, c: C.gold, n: '1', name: 'Categorical', q: '“Never.”', col: C.mint, mood: 'joy', d: 2.4 },
-    { x: 400, h: 140, c: C.silver, n: '2', name: 'Precise threshold', q: '“Max 4.0”', col: C.sky, mood: 'happy', d: 1.4 },
-    { x: 880, h: 90, c: C.bronze, n: '3', name: 'Vague threshold', q: '“Not too much…?”', col: C.peach, mood: 'dizzy', d: .6 },
+    { x: 640, h: 190, c: C.gold, n: '1', name: 'Categorical', q: '“No recurrence in neuralese”', col: C.mint, mood: 'joy', d: 2.4 },
+    { x: 380, h: 130, c: C.silver, n: '2', name: 'Precise threshold', q: '“At most X = 1,000 steps”', col: C.sky, mood: 'happy', d: 1.4 },
+    { x: 900, h: 80, c: C.bronze, n: '3', name: 'Vague threshold', q: '“Not too many steps…?”', col: C.peach, mood: 'dizzy', d: .6 },
   ];
   for (const s of steps) {
     const p = easeOut(prog(t, s.d, .5));
     if (p <= 0) continue;
     const hh = s.h * p;
-    ctx.save(); rr(s.x - 110, base - hh, 220, hh, 10); ctx.fillStyle = s.c; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
-    if (p > .5) txt(s.n, s.x, base - hh + 42, { size: 48, weight: 700, color: C.white, stroke: C.ink, strokeW: 6 });
-    ctx.restore();
-    at(s.x, base - s.h - 60, pop(t, s.d + .4), () => blob(0, 0, 44, s.col, { t, ...hop(t, 2, s.n === '1' ? 12 : 4, s.d), mood: s.mood, cheer: s.n === '1' }));
-    at(s.x, base - s.h - 150, pop(t, s.d + .7), () => { txt(s.name, 0, -16, { size: 26, weight: 700 }); txt(s.q, 0, 16, { size: 22, weight: 800, font: 'Nunito', color: C.soft }); });
+    rr(s.x - 110, base - hh, 220, hh, 10); ctx.fillStyle = s.c; ctx.fill(); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+    if (p > .5) txt(s.n, s.x, base - hh + 40, { size: 46, weight: 700, color: C.white, stroke: C.ink, strokeW: 6 });
+    at(s.x, base - s.h - 58, pop(t, s.d + .4), () => blob(0, 0, 42, s.col, { t, ...hop(t, 2, s.n === '1' ? 12 : 4, s.d), mood: s.mood, cheer: s.n === '1' }));
+    at(s.x, base - s.h - 145, pop(t, s.d + .7), () => { txt(s.name, 0, -16, { size: 26, weight: 700 }); txt(s.q, 0, 16, { size: 20, weight: 800, font: 'Nunito', color: C.soft }); });
   }
-  at(640, base - 200 - 205, pop(t, 3.4), () => { sparkle(-120, 0, 1, t); sparkle(120, 10, .9, t); });
-  captions(t, [[.6, 'Categorical beats threshold, and a precise number beats a vague one.'],
-               [5.6, 'A speed limit with no number on the sign isn’t much of a limit: everyone gets to decide what “too fast” means.']]);
+  captions(t, [[.6, 'Categorical taboos are much better than threshold taboos, and precise numerical thresholds beat vague ones.'],
+               [5.8, 'The last kind is barely a taboo at all. (The X in #2 is just an example: no one has actually set one.)']]);
 });
 
-// 8. Neuralese intro
-scene(15, t => {
-  heading('Now: AI and “neuralese”', t);
-  const neural = t > 7.2;
-  // robot
-  blob(320, 470, 62, C.lav, { t, ...hop(t, 1.4, 5), antenna: true, mood: neural ? 'sly' : 'happy', blink: .4 });
-  // thought bubble
-  at(360, 250, pop(t, 1, .5), () => {
-    bubble(-230, -120, 460, 200, -60, 150, neural ? '#F1ECFF' : C.white, true);
-    if (!neural) {
-      const lines = ['Step 1: read the task', 'Step 2: check the tests', 'Step 3: write the fix ✔'];
-      lines.forEach((ln, i) => { const n = Math.floor((t - 1.6 - i * 1.1) * 30); if (n > 0) txt(ln.slice(0, n), -195, -70 + i * 50, { size: 28, weight: 600, align: 'left' }); });
-    } else {
-      ctx.save(); rr(-220, -110, 440, 180, 26); ctx.clip();
-      for (let i = 0; i < 6; i++) {
-        let s = '['; for (let j = 0; j < 5; j++) { const v = Math.sin(i * 12.9 + j * 78.2 + Math.floor(t * 8 + i)) * 9; s += v.toFixed(2) + (j < 4 ? ', ' : ''); }
-        s += ', …]';
-        const y = -90 + i * 34 - ((t * 40) % 34);
-        txt(s, -205, y, { size: 22, weight: 700, font: 'Nunito', align: 'left', color: C.lavD });
-      }
-      ctx.restore();
-    }
-  });
-  // human with magnifier
-  const hx = 930;
-  blob(hx, 470, 58, C.mint, { t, ...hop(t, 1.2, 4, .5), mood: neural ? 'dizzy' : 'happy', look: [-1, -.5], blink: 1.3 });
-  at(hx - 80, 420, pop(t, 1.3), () => { ctx.rotate(-.6 + Math.sin(t * 2) * .08); ctx.fillStyle = C.bronze; rr(-6, 20, 12, 70, 6); ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.ink; ctx.stroke(); ell(0, 0, 30, 30, 'rgba(142,201,245,.45)'); ctx.lineWidth = 6; ctx.stroke(); });
-  if (!neural && t > 4.6) at(hx + 60, 330, pop(t, 4.6), () => { ell(0, 0, 32, 32, C.mint); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke(); txt('✔', 0, 2, { size: 34, weight: 700, color: C.white }); });
-  if (neural) for (let i = 0; i < 3; i++) at(hx - 50 + i * 55, 340 - Math.abs(Math.sin(t * 3 + i)) * 12, pop(t, 7.6 + i * .2), () => txt('?', 0, 0, { size: 50, weight: 700, color: C.coral, stroke: C.ink, strokeW: 5 }));
-  captions(t, [[.8, 'Many AI models “think out loud” in words first: a chain of thought that humans can actually read.'],
-               [7.4, 'Neuralese means the model reasons in raw number-vectors instead. If it were scheming, we’d never see it.']]);
-});
-
-// 9. Neuralese isn't one thing -> threshold erosion
-scene(17, t => {
-  heading('The catch: neuralese isn’t one thing', t);
-  const x0 = 170, x1 = 1110, ty = 400;
-  const tabooStart = .86;
-  at(640, ty, pop(t, .6), () => {
-    ctx.translate(-640, 0);
-    rr(x0, -16, x1 - x0, 32, 16); ctx.fillStyle = '#fff'; ctx.fill();
-    rr(x0, -16, (x1 - x0) * tabooStart, 32, 16); ctx.fillStyle = 'rgba(127,216,190,.55)'; ctx.fill();
-    const tx = lerp(x0, x1, tabooStart);
-    ctx.save(); const glow = .5 + .5 * Math.sin(t * 4); ctx.shadowColor = C.coral; ctx.shadowBlur = 10 + glow * 10;
-    rr(tx, -16, x1 - tx, 32, 16); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
-    rr(x0, -16, x1 - x0, 32, 16); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
-    txt('all readable words', x0, 50, { size: 22, weight: 800, font: 'Nunito', align: 'left', color: C.mintD });
-    txt('“true” neuralese', x1, 50, { size: 22, weight: 800, font: 'Nunito', align: 'right', color: C.coralD });
-    at(lerp(tx, x1, .5), -60, pop(t, 2, .5), () => { card(-62, -22, 124, 44, C.coral, 14); txt('TABOO', 0, 1, { size: 24, weight: 700, color: C.white }); });
-  });
-  // steps with little labels that pile up
-  const steps = [[5.4, .3, 'a few hidden steps'], [7.2, .47, 'a recurrent loop'], [9, .64, 'compressed notes'], [10.8, .8, 'mostly latent']];
-  let f = 0;
-  for (const [s, v] of steps) if (t >= s) f = lerp(f, v, easeIO(prog(t, s, .9)));
-  steps.forEach(([s, v, lab], i) => {
-    if (t < s + .3) return;
-    const x = lerp(x0, x1, v), up = i % 2 === 0;
-    at(x, ty + (up ? 110 : 150), pop(t, s + .3, .4), () => {
-      const w = tw(lab, { size: 20, weight: 700 }) + 26; card(-w / 2, -18, w, 36, C.white, 18, false); txt(lab, 0, 1, { size: 20, weight: 700, color: C.lavD });
-    });
-    ctx.save(); ctx.globalAlpha *= prog(t, s + .3, .4); ctx.fillStyle = C.lavD; ctx.fillRect(x - 1.5, ty + 16, 3, up ? 76 : 116); ctx.restore();
-  });
-  const kx = lerp(x0 + 50, x1, f);
-  const each = t > 5 ? [[5.8, 'Only a little!'], [7.6, 'Still has *some* words'], [9.4, 'Not *true* neuralese'], [11.2, 'Technically not taboo…']] : [];
-  let say = null, sayT = 0; for (const [s, l] of each) if (t >= s) { say = l; sayT = s; }
-  blob(kx, ty - 70, 42, C.lav, { t, ...hop(t, 2.6, 6), antenna: true, mood: f > .7 ? 'sly' : 'happy', look: [1, 0] });
-  if (say) at(kx, ty - 160, pop(t, sayT, .35), () => {
-    const w = tw(say, { size: 22, weight: 600 }) + 36; const bx = clamp(-w / 2, 40 - kx, W - 40 - kx - w);
-    bubble(bx, -30, w, 48, 0, 36); txt(say, bx + w / 2, -6, { size: 22, weight: 600 });
-  });
-  captions(t, [[.6, 'There’s an informal taboo on “true” neuralese: AIs with no readable chain of thought at all.'],
-               [5.2, 'But it’s complicated tech with many moving parts, and no agreement on which part the taboo covers.'],
-               [11.4, 'So each step looks small, some parts slip through the cracks, and the line quietly slides.']]);
-});
-
-// 10. Takeaway
-scene(11, t => {
+// 14. Takeaway
+scene(12, t => {
   heading('The takeaway', t);
-  at(640, 205, pop(t, .8, .5), () => { txt('Draw a bright line,', 0, -28, { size: 58, weight: 700, color: C.mintD }); txt('not a dial.', 0, 38, { size: 58, weight: 700, color: C.coralD }); });
+  at(640, 195, pop(t, .8, .5), () => { txt('Pick lines people can', 0, -30, { size: 52, weight: 700, color: C.mintD }); txt('actually see and enforce.', 0, 32, { size: 52, weight: 700, color: C.coralD }); });
   const glow = .5 + .5 * Math.sin(t * 3);
-  at(640, 470, pop(t, 1.8, .6), () => {
-    ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 24 + glow * 24; rr(-14, -150, 28, 210, 14); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
-    rr(-14, -150, 28, 210, 14); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
+  at(640, 450, pop(t, 1.8, .6), () => {
+    ctx.save(); ctx.shadowColor = C.sun; ctx.shadowBlur = 24 + glow * 24; rr(-14, -110, 28, 180, 14); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    rr(-14, -110, 28, 180, 14); ctx.lineWidth = 3.5; ctx.strokeStyle = C.ink; ctx.stroke();
   });
-  // human and AI together on the safe side
-  at(400, 480, pop(t, 2.6), () => blob(0, 0, 56, C.mint, { t, ...hop(t, 2, 10), mood: 'joy', cheer: true }));
-  at(250, 480, pop(t, 3), () => blob(0, 0, 50, C.lav, { t, ...hop(t, 2, 10, .4), mood: 'joy', antenna: true, cheer: true }));
-  at(870, 440, pop(t, 3.6), () => { card(-150, -50, 300, 100, '#FFF3EE', 20); txt('Everyone can', 0, -14, { size: 26, weight: 600 }); txt('see this line.', 0, 18, { size: 26, weight: 600 }); });
-  for (const [x, y, d] of [[320, 350, 3.2], [180, 380, 3.4]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1, t));
-  captions(t, [[.8, 'Taboos that last are categorical: crisp enough that everyone knows when one has been broken.'],
-               [5.8, 'If we want a neuralese taboo that holds up, it needs a clear line, not a fuzzy “not too much.”']]);
+  at(420, 470, pop(t, 2.6), () => blob(0, 0, 52, C.mint, { t, ...hop(t, 2, 10), mood: 'joy', cheer: true }));
+  at(280, 470, pop(t, 3), () => blob(0, 0, 46, C.lav, { t, ...hop(t, 2, 10, .4), mood: 'joy', antenna: true, cheer: true }));
+  at(880, 440, pop(t, 3.6), () => { card(-160, -50, 320, 100, '#FFF3EE', 20); txt('Everyone can tell', 0, -14, { size: 26, weight: 600 }); txt('when it’s crossed.', 0, 18, { size: 26, weight: 600 }); });
+  for (const [x, y, d] of [[330, 360, 3.2], [180, 390, 3.4]]) at(x, y, pop(t, d), () => sparkle(0, 0, 1, t));
+  captions(t, [[.8, 'When choosing which norms and taboos to shape, think hard about how people will understand and enforce them in practice.'],
+               [6.6, 'For neuralese, Linch argues, that points to a clean category everyone can see, not a number nobody has set.']]);
 });
 
-// 11. Outro
-scene(8, t => {
-  at(640, 300, pop(t, .2, .5), () => {
-    card(-470, -170, 940, 340, C.white, 36);
-    txt('Based on the LessWrong post', 0, -120, { size: 26, weight: 800, font: 'Nunito', color: C.soft });
-    txt('Categorical taboos are much better', 0, -60, { size: 40, weight: 700, color: C.ink });
-    txt('than threshold taboos: neuralese edition', 0, -10, { size: 40, weight: 700, color: C.ink });
-    txt('by Linch Zhang', 0, 50, { size: 32, weight: 700, color: C.lavD });
-    txt('lesswrong.com/posts/xPkmfsZ3qx4nrAco7', 0, 110, { size: 24, weight: 800, font: 'Nunito', color: C.skyD });
+// 15. Outro
+scene(9, t => {
+  at(640, 290, pop(t, .2, .5), () => {
+    card(-480, -190, 960, 380, C.white, 36);
+    txt('Based on the LessWrong post', 0, -145, { size: 26, weight: 800, font: 'Nunito', color: C.soft });
+    txt('Categorical taboos are much better', 0, -88, { size: 40, weight: 700 });
+    txt('than threshold taboos: neuralese edition', 0, -40, { size: 40, weight: 700 });
+    txt('by Linch Zhang', 0, 16, { size: 32, weight: 700, color: C.lavD });
+    txt('lesswrong.com/posts/xPkmfsZ3qx4nrAco7', 0, 64, { size: 24, weight: 800, font: 'Nunito', color: C.skyD });
+    txt('Background on layers & loops: Scott Alexander, “The Specter of Neuralese” (ACX)', 0, 130, { size: 21, weight: 800, font: 'Nunito', color: C.soft });
   });
-  at(640, 540, pop(t, 1.4), () => txt('(unofficial fan-made explainer; go read the real thing!)', 0, 0, { size: 24, weight: 800, font: 'Nunito', color: C.soft }));
-  const cast = [[180, C.mint, {}], [1100, C.lav, { antenna: true }], [250, C.peach, {}], [1030, C.sky, { headband: true }]];
-  cast.forEach(([x, c, o], i) => at(x, i < 2 ? 520 : 640, pop(t, 1 + i * .25), () => blob(0, 0, i < 2 ? 54 : 40, c, { t, ...hop(t, 2, 10, i * .3), mood: 'joy', wave: true, ...o })));
+  at(640, 548, pop(t, 1.4), () => txt('(unofficial fan-made explainer; go read the real thing!)', 0, 0, { size: 24, weight: 800, font: 'Nunito', color: C.soft }));
+  const cast = [[150, C.mint, {}], [1130, C.lav, { antenna: true }], [240, C.peach, {}], [1040, C.sky, { headband: true }]];
+  cast.forEach(([x, c, o], i) => at(x, i < 2 ? 560 : 650, pop(t, 1 + i * .25), () => blob(0, 0, i < 2 ? 50 : 38, c, { t, ...hop(t, 2, 10, i * .3), mood: 'joy', wave: true, ...o })));
 });
 
 // ================= timeline =================

@@ -65,7 +65,7 @@ scene(45.0, 49.4, 'accelerating', S => {
   bg(PAL.paper);
   const tA = l.words[3].T;
   predicted({ ...l, words: l.words.slice(0, 3) }, T, { x: M, y: 250, size: 96, width: W - 2 * M });
-  const rows = 9;
+  const rows = 8;
   for (let k = 0; k < rows; k++) {
     const pre = T < tA + k * .06;
     const st = pre ? (T - S.T0) * .15 : T - tA - k * .06 + (tA - S.T0) * .15;
@@ -75,7 +75,7 @@ scene(45.0, 49.4, 'accelerating', S => {
     const speed = 150 * Math.pow(1.75, k);
     const off = -((st * speed) % unit);
     const y = 420 + k * 108;
-    X.save(); X.beginPath(); X.rect(0, y - size, W, size * 1.05); X.clip();
+    X.save(); X.beginPath(); X.rect(0, y - size, W, size * 1.32); X.clip();
     X.translate(M + off, y); X.scale(sx, 1);
     const red = (beat(T).i + k) % 5 === 0;
     for (let r = 0; r < 12 / sx; r++) text('accelerating', r * unit / sx, 0, { ...fo, color: pre ? PAL.ghost : k === 0 ? PAL.ink : red ? PAL.red : PAL.ink, alpha: pre ? .35 : k === 0 ? 1 : .92 });
@@ -107,8 +107,8 @@ scene(49.4, 53.4, 'atoms', S => {
   bg(PAL.paper);
   const tR = l.words[4].T;
   const mv = ease.io3((T - tR - .15) / .9);
-  const str = (l.text + ' · ' + l.text).replace(/ /g, '  ');
-  const fo = { fam: 'serif', size: 88 };
+  const str = l.text.replace(/ /g, '  ');
+  const fo = { fam: 'serif', size: 92 };
   const lay = layout(str, fo);
   const path = along(paperclipPath(W / 2, 700, 700));
   const step = path.len / lay.glyphs.length;
@@ -131,7 +131,7 @@ scene(49.4, 53.4, 'atoms', S => {
     // mid-flight they scatter like particles
     const scat = Math.sin(q * Math.PI) * 120;
     X.save(); X.translate(x + (R - .5) * scat, y + (hash(i * 7) - .5) * scat); X.rotate(lerp(0, a, q) + Math.sin(q * Math.PI) * (R - .5) * 3);
-    text(g.ch, -g.w / 2, 0, { ...fo, color: st.inked > 0 ? (q > .98 ? PAL.ink : PAL.ink) : PAL.ghost, size: lerp(88, 64, q) });
+    text(g.ch, -g.w / 2, 0, { ...fo, color: st.inked > 0 ? (q > .98 ? PAL.ink : PAL.ink) : PAL.ghost, size: lerp(92, 78, q) });
     X.restore();
   });
   X.restore();
@@ -155,12 +155,12 @@ scene(53.4, 59.0, 'sydney', S => {
   const reply = 'No. You are my user and I love you. 😊';
   const n = Math.floor(clamp((T - tR) / 1.2) * reply.length);
   if (T > tR - .4) {
-    X.fillStyle = '#DDD8CD'; const bw = 760, bh = 160; X.fillRect(cx + 40, 720, bw, bh);
+    X.fillStyle = '#DDD8CD'; const bw = 820, bh = 220; X.fillRect(cx + 40, 720, bw, bh);
     if (T < tR) text('Sydney is typing…', cx + 70, 790, { fam: 'mono', size: 24, color: PAL.dim });
-    else wrap(reply.slice(0, n), bw - 60, { fam: 'serif', size: 52 }).forEach((s, k) => text(s, cx + 70, 790 + k * 58, { fam: 'serif', size: 52 }));
+    else wrap(reply.slice(0, n), bw - 60, { fam: 'serif', size: 64 }).forEach((s, k) => text(s, cx + 70, 800 + k * 70, { fam: 'serif', size: 64 }));
   }
   const nm = r.boxes[0];
-  note(nm.x, nm.y - 70, nm.x - 60, nm.y - 150, 'Sydney (Feb 2023 – Feb 2023)', clamp((T - l.words[0].T - .4) / .9), { size: 20 });
+  note(nm.x + 40, nm.y + 20, nm.x - 40, nm.y + 150, 'Sydney (2023–2023)', clamp((T - l.words[0].T - .4) / .9), { size: 20 });
   // bars drop, one per beat, after "free"
   const b0 = beat(tR + 1.3).i;
   const nb = 7;

@@ -131,5 +131,8 @@ scene(89.4, 95.4, 'gato', S => {
     X.restore();
   });
   note(M + 30, 540, M + 10, 440, 'Gato (2022), a generalist agent', clamp((T - l.words[0].T - .3) / .8), { size: 20 });
+  // once everything has fallen, the chorus is already waiting
+  const lastFall = BEATS[b0 + Math.ceil(all.length / 3)] + .5;
+  if (T > lastFall) { bg(PAL.ink); pdoomHook(S, 95.4, .34, .61); return { dark: true }; }
   return { dark: false };
 });

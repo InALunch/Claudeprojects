@@ -83,3 +83,13 @@ async function video() {
 }
 
 if (args.still) await stills(); else if (args.sheet) await sheet(); else if (args.video) await video();
+
+// node render.mjs --share=out/errata.mp4  -> <name>_share.mp4 (two-pass, ~28 MB, for posting)
+if (args.share) {
+  const src = path.resolve(ROOT, String(args.share)), dst = src.replace(/\.mp4$/, '_share.mp4');
+  const run = a => new Promise((res, rej) => spawn('ffmpeg', a, { stdio: 'inherit', cwd: `${ROOT}/out` }).on('close', c => c ? rej(c) : res()));
+  const v = ['-c:v', 'libx264', '-preset', 'slow', '-b:v', '1650k', '-maxrate', '3000k', '-bufsize', '6000k', '-pix_fmt', 'yuv420p', '-tune', 'grain'];
+  await run(['-y', '-v', 'error', '-i', src, ...v, '-pass', '1', '-an', '-f', 'mp4', '/dev/null']);
+  await run(['-y', '-v', 'error', '-i', src, ...v, '-pass', '2', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', dst]);
+  console.log(dst, (fs.statSync(dst).size / 1e6).toFixed(1) + ' MB');
+}

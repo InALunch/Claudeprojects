@@ -7,7 +7,7 @@ scene(59.0, 60.5, 'hook 2', S => {
   const d = daysAt(T), past = d >= TODAY_DAYS;
   const a = clamp((T - S.T0) / .15);
   text(dateStr(T), M, 300, { fam: 'mono', size: 54, weight: 700, color: PAL.red, alpha: a });
-  text(past ? '← you were here' : '← you are here', M + measure(dateStr(T), { fam: 'mono', size: 54, weight: 700 }) + 24, 300, { fam: 'mono', size: 30, color: PAL.paper, alpha: a });
+  text(Math.abs(d - TODAY_DAYS - .5) < 1e-6 ? '← today' : past ? '← that was today' : '← approaching today', M + measure(dateStr(T), { fam: 'mono', size: 54, weight: 700 }) + 24, 300, { fam: 'mono', size: 30, color: PAL.paper, alpha: a });
   return { dark: true };
 });
 
@@ -75,12 +75,12 @@ scene(64.5, 66.0, 'omega', S => {
   const cx = W / 2, cy = 700;
   const words = ['compute', 'tokens', 'data', 'capex', 'GPUs', 'evals', 'agents', 'energy', 'math', 'code', 'science', 'you'];
   const R = rng(64);
-  for (let i = 0; i < 60; i++) {
-    const a0 = R() * Math.PI * 2, r0 = 350 + R() * 500, sp = .7 + R() * .8;
+  for (let i = 0; i < 34; i++) {
+    const a0 = R() * Math.PI * 2, r0 = 330 + R() * 320, sp = .7 + R() * .8;
     const q = ease.inExpo(clamp(S.u * sp * 1.1));
     const r = r0 * (1 - q), a = a0 + q * 5;
     const w = words[i % words.length];
-    text(w, cx + Math.cos(a) * r, cy + Math.sin(a) * r * .8, { fam: 'mono', size: 28 * (1 - q * .8) + 4, color: i % 7 ? PAL.paper : PAL.red, alpha: 1 - q * .6, align: 'center' });
+    text(w, cx + Math.cos(a) * r, cy + Math.sin(a) * r * .75, { fam: 'mono', size: 34 * (1 - q * .8) + 4, color: i % 7 ? PAL.paper : PAL.red, alpha: 1 - q * .6, align: 'center' });
   }
   const g = ease.outExpo(inv(S.T1 - .35, S.T1, T));
   X.fillStyle = PAL.paper; X.beginPath(); X.arc(cx, cy, 6 + g * 40, 0, 7); X.fill();

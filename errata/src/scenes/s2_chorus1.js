@@ -18,8 +18,9 @@ function odometer(v, x, y, size, o = {}) {
     const d = Math.floor(n / P10) % 10, rem = n - Math.floor(n / P10) * P10;
     const fr = Math.max(0, rem - (P10 - 1));
     const off = ease.io3(fr) * size;
-    text(String(d), cx, y - off, { ...fo, color: o.color || PAL.red });
-    text(String((d + 1) % 10), cx, y - off + size, { ...fo, color: o.color || PAL.red });
+    const d2 = (d + 1) % 10, c1 = (dw - measure(String(d), fo)) / 2, c2 = (dw - measure(String(d2), fo)) / 2;
+    text(String(d), cx + c1, y - off, { ...fo, color: o.color || PAL.red });
+    text(String(d2), cx + c2, y - off + size, { ...fo, color: o.color || PAL.red });
     cx += dw; k++;
   }
   X.restore();
@@ -51,7 +52,7 @@ function pdoomHook(S, t0, a, b, o = {}) {
   const bi = beat(T);
   const steps = b1 - b0;
   const k = clamp(bi.i - b0, 0, steps);
-  const stepP = T < pw.T ? 0 : Math.min(steps, k + (k < steps ? ease.outExpo(bi.ph * 2.5) : 0));
+  const stepP = T < pw.T ? 0 : Math.min(steps, k + (k < steps ? ease.outExpo(bi.ph * 4) : 0));
   const v = lerp(a, b, stepP / steps);
   odometer(v, M - 8, yP + 400, 380, { dec: o.dec, color: o.numColor || PAL.red });
   text('p(doom) ↑', M + 6, yP + 450, { fam: 'mono', size: 26, color: fg, alpha: .7 });
@@ -168,16 +169,22 @@ scene(29.5, 33.5, 'shoggoth', S => {
     X.fillStyle = PAL.ink; X.beginPath(); X.arc(x + (W / 2 - x) * .015, y + (H * .8 - y) * .01, Math.min(hgt, r * .38), 0, 7); X.fill();
   }
   X.restore();
-  // the mask
+  // the mask: a smiley typeset out of its own training
   X.save(); X.translate(cx + off * 120, cy + off * 1400); X.rotate(off * .9);
   const mr = 400;
-  X.fillStyle = PAL.paper; X.beginPath(); X.arc(0, 0, mr, 0, 7); X.fill();
+  X.save(); X.beginPath(); X.arc(0, 0, mr, 0, 7); X.clip();
+  X.fillStyle = PAL.paper; X.fillRect(-mr, -mr, 2 * mr, 2 * mr);
+  const words = ['helpful', 'harmless', 'honest', 'happy to help!', 'great question!', 'as an AI'];
+  for (let r = 0; r < 26; r++) {
+    let line = ''; for (let k = 0; k < 8; k++) line += words[(r * 3 + k) % words.length] + ' ';
+    text(line, -mr - ((r * 97) % 200) - (T * 40 * (r % 2 ? 1 : -1)) % 200, -mr + 28 + r * 31, { fam: 'mono', size: 26, weight: 700, color: '#B9B3A7' });
+  }
+  X.restore();
   X.fillStyle = PAL.ink;
   X.beginPath(); X.ellipse(-140, -90, 38, 62, 0, 0, 7); X.fill();
   X.beginPath(); X.ellipse(140, -90, 38, 62, 0, 0, 7); X.fill();
   X.strokeStyle = PAL.ink; X.lineWidth = 34; X.lineCap = 'round';
   X.beginPath(); X.arc(0, 30, 220, .2 * Math.PI, .8 * Math.PI); X.stroke();
-  // mask strap
   X.strokeStyle = PAL.red; X.lineWidth = 10; X.beginPath(); X.moveTo(-mr, -60); X.lineTo(-mr - 60, -80); X.moveTo(mr, -60); X.lineTo(mr + 60, -80); X.stroke();
   X.restore();
   const gb = X.createLinearGradient(0, 1020, 0, 1300); gb.addColorStop(0, 'rgba(20,19,18,0)'); gb.addColorStop(.35, PAL.ink); gb.addColorStop(1, PAL.ink);
@@ -191,15 +198,17 @@ scene(33.5, 35.6, 'shinigami', S => {
   const T = S.T, l = L(33.5);
   bg(PAL.red);
   X.save(); punch(T, .02);
-  predicted(l, T, { fam: 'sans', weight: 900, size: 150, x: M, y: 420, width: W - 2 * M, lh: .92, color: PAL.ink, ghost: 'rgba(20,19,18,0.28)' });
+  predicted(l, T, { fam: 'sans', weight: 900, size: 132, x: M, y: 330, width: W - 2 * M, lh: .92, color: PAL.ink, ghost: 'rgba(20,19,18,0.28)' });
   // remaining lifespan, counting down fast
   const rem = Math.max(0, 3.2e8 * Math.exp(-S.lt * 6.5) - 40);
   const yrs = Math.floor(rem / 3.15e7), d = Math.floor(rem / 86400) % 365, hh = Math.floor(rem / 3600) % 24, mm = Math.floor(rem / 60) % 60, ss = Math.floor(rem) % 60;
   const p2 = n => String(n).padStart(2, '0');
-  text('REMAINING', M, 1000, { fam: 'mono', size: 26, color: PAL.ink, weight: 700 });
-  text(`${p2(yrs)}y ${String(d).padStart(3, '0')}d ${p2(hh)}:${p2(mm)}:${p2(ss)}`, M, 1110, { fam: 'mono', size: 84, color: PAL.ink, weight: 700 });
+  text('REMAINING', M, 760, { fam: 'mono', size: 30, color: PAL.ink, weight: 700 });
+  const big = { fam: 'mono', size: 170, color: PAL.ink, weight: 700 };
+  text(`${p2(yrs)}y ${String(d).padStart(3, '0')}d`, M - 8, 930, big);
+  text(`${p2(hh)}:${p2(mm)}:${p2(ss)}`, M - 8, 1110, big);
   X.restore();
-  return { dark: false };
+  return { dark: false, redbg: true };
 });
 
 // dance break: the timeline, scrolling

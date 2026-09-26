@@ -141,7 +141,7 @@ function caret(x, y, s, p, color = PAL.red) {
 // margin comment: a thin leader line from (ax,ay) to a mono note at (x,y)
 function note(ax, ay, x, y, str, p, o = {}) {
   if (p <= 0) return;
-  const s = o.size || 22, color = o.color || PAL.red;
+  const s = Math.max(28, o.size || 28), color = o.color || PAL.red;
   X.save();
   X.strokeStyle = color; X.lineWidth = 2; X.setLineDash([5, 5]);
   const q = ease.out3(p * 2);
@@ -176,7 +176,7 @@ function wordState(line, i, T) {
 function predicted(line, T, o) {
   const fo = { fam: o.fam || 'serif', size: o.size || 64, weight: o.weight, italic: o.italic, track: o.track };
   const words = line.words.map(w => w.w);
-  const space = measure(' ', fo);
+  const space = Math.max(measure(' ', fo), fo.size * .27);
   const lh = (o.lh || 1.08) * fo.size;
   // lay words into rows
   const rows = [[]]; let rw = 0;
@@ -197,10 +197,12 @@ function predicted(line, T, o) {
       if (st.typed > 0) {
         const vis = Math.ceil(it.w.length * st.typed);
         const pop = o.pop == null ? 1 : o.pop;
-        const sc = 1 + pop * 0.12 * Math.exp(-Math.max(0, st.since) * 14) * (st.inked > 0 ? 1 : 0);
+        const sc = 1 + pop * 0.08 * Math.exp(-Math.max(0, st.since) * 14) * (st.inked > 0 ? 1 : 0);
         X.save(); X.translate(x + it.ww / 2, y - fo.size * .3); X.scale(sc, sc); X.translate(-(x + it.ww / 2), -(y - fo.size * .3));
         const col = st.inked > 0 ? (o.color || PAL.ink) : (o.ghost || PAL.ghost);
-        text(it.w.slice(0, vis), x, y, { ...fo, color: col, alpha: st.inked > 0 ? 1 : 0.9 }, o.per ? (g, gi, n) => o.per(g, gi, n, it, st) : null);
+        const altw = o.alt && o.alt[it.i], alts = Array.isArray(altw) ? altw : [altw];
+        const shownW = st.inked <= 0 && altw ? alts[Math.floor(Math.max(0, T - line.T0) / .5) % alts.length] : it.w;
+        text(shownW.slice(0, Math.ceil(shownW.length * st.typed)), x, y, { ...fo, color: col, alpha: st.inked > 0 ? 1 : 0.9 }, o.per ? (g, gi, n) => o.per(g, gi, n, it, st) : null);
         X.restore();
       }
       x += it.ww + space;
@@ -247,7 +249,7 @@ function finishPaper(T, dark) {
   X.save();
   X.globalCompositeOperation = 'overlay'; X.globalAlpha = dark ? .35 : .55; X.drawImage(FIBER, 0, 0);
   X.globalCompositeOperation = dark ? 'screen' : 'multiply'; X.globalAlpha = dark ? .05 : .09;
-  const f = Math.floor(T * FPS) % GRAIN.length; X.drawImage(GRAIN[f], 0, 0, W, H);
+  const f = Math.floor(T * FPS / 2) % GRAIN.length; X.drawImage(GRAIN[f], 0, 0, W, H);
   X.restore();
   // vignette
   const g = X.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * .85);
@@ -258,15 +260,18 @@ function finishPaper(T, dark) {
 // ───────────────────────── HUD ─────────────────────────
 // the song's calendar: starts in 2024 (when the song was written), passes today mid-song, then runs away
 const DAY0 = Date.UTC(2024, 5, 1);
+const TODAY_DAYS = (Date.UTC(2026, 8, 25) - DAY0) / 864e5;
 function daysAt(T) {
   const t = toOrig(T);
-  if (t < 137.2) return 350 * (Math.exp(t / 48.5) - 1);
-  const frozen = 350 * (Math.exp(137.2 / 48.5) - 1);
+  const f = x => 350 * (Math.exp(x / 48.5) - 1), tc = 48.5 * Math.log(1 + TODAY_DAYS / 350);
+  if (t < tc) return f(t);
+  if (t < tc + .45) return TODAY_DAYS + .5;            // the calendar hesitates on today
+  if (t < 137.2) return f(t - .45);
+  const frozen = f(137.2 - .45);
   if (t < 140.5) return frozen;                          // the calendar stops for "was it all for show?"
   const x = (t - 140.5) / 13.5;
   return frozen + Math.pow(10, 1 + x * 8.5);            // runaway
 }
-const TODAY_DAYS = (Date.UTC(2026, 8, 25) - DAY0) / 864e5;
 function dateStr(T) {
   const d = daysAt(T);
   if (d > 3e6) return '████-██-██';
@@ -276,35 +281,30 @@ function dateStr(T) {
   return `${y}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())} ${p(dt.getUTCHours())}:${p(dt.getUTCMinutes())}`;
 }
 // p(doom) as the song pumps it
-const PDOOM = [[0, .08], [23.0, .08], [24.4, .15], [38.5, .15], [59.0, .15], [60.4, .34], [95.4, .34], [97.4, .61], [123.5, .61], [125.9, .86], [135.4, .99], [140.5, .99], [154, .999999]];
+const PDOOM = [[0, .08], [23.71, .08], [24.7, .15], [59.71, .15], [60.7, .34], [96.11, .34], [97.7, .61], [124.21, .61], [126.2, .86], [135.4, .99], [140.5, .99], [154, .999999]];
 function pdoomAt(T) { const t = toOrig(T); for (let i = 1; i < PDOOM.length; i++) if (t < PDOOM[i][0]) { const [a, va] = PDOOM[i - 1], [b, vb] = PDOOM[i]; return lerp(va, vb, ease.io3(inv(a, b, t))); } return .999999; }
 let HUD_OVERRIDE = null;
-function hud(T, dark) {
+function hud(T, dark, redbg) {
   const col = dark ? PAL.paper : PAL.ink;
-  const s = 19;
+  const RED = redbg ? PAL.ink : PAL.red;
+  const s = 25;
   X.save();
-  X.globalAlpha = .82;
-  const top = 58, bot = H - 44;
+  X.globalAlpha = .9;
+  const top = 62, bot = H - 46;
   text("I'M UPPING MY P(DOOM)", M, top, { fam: 'mono', size: s, color: col, weight: 700 });
   const rev = DATA.lines.filter(l => l.T0 <= T).length;
-  text(`rev.${String(rev).padStart(2, '0')} · 2026 edit`, M, top + 26, { fam: 'mono', size: s, color: col });
+  text(`rev.${String(rev).padStart(2, '0')} · 2026 edit`, M, top + 32, { fam: 'mono', size: s, color: col });
   // date, right aligned, with a TODAY flag as it passes
   const d = daysAt(T);
   const past = d >= TODAY_DAYS;
-  text(dateStr(T), W - M, top, { fam: 'mono', size: s, color: past ? PAL.red : col, align: 'right', weight: 700 });
-  const dToday = Math.abs(d - TODAY_DAYS);
-  const nearToday = toOrig(T) > 50 && toOrig(T) < 70;
-  if (nearToday) {
-    const tp = toOrig(T);
-    const flag = clamp(1 - Math.abs(tp - 59.6) / 1.4);
-    if (flag > 0) text(d < TODAY_DAYS ? '← approaching today' : '← today was here', W - M, top + 26, { fam: 'mono', size: s, color: PAL.red, align: 'right', alpha: flag });
-  }
-  if (!nearToday && past) text('(the future)', W - M, top + 26, { fam: 'mono', size: s, color: PAL.red, align: 'right', alpha: .8 });
+  text(dateStr(T), W - M, top, { fam: 'mono', size: s, color: past ? RED : col, align: 'right', weight: 700 });
+  if (Math.abs(d - TODAY_DAYS - .5) < 1e-6) text('\u2190 today', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', weight: 700 });
+  else if (past) text('(the future)', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', alpha: .8 });
   // bottom: tempo and p(doom)
   const bpm = bpmAt(T);
   text(`BPM ${bpm.toFixed(1)}`, M, bot, { fam: 'mono', size: s, color: col, weight: 700 });
   const pd = pdoomAt(T);
-  text(`p(doom) ${pd.toFixed(pd > .99 ? 6 : 2)}`, W - M, bot, { fam: 'mono', size: s, color: pd > .8 ? PAL.red : col, align: 'right', weight: 700 });
+  text(`p(doom) ${pd.toFixed(pd > .99 ? 6 : 2)}`, W - M, bot, { fam: 'mono', size: s, color: pd > .8 ? RED : col, align: 'right', weight: 700 });
   // hairline progress rule along the bottom
   const pr = clamp(T / CUT);
   X.fillStyle = col; X.globalAlpha = .25; X.fillRect(M, bot + 16, W - 2 * M, 1.5);
@@ -315,6 +315,7 @@ function hud(T, dark) {
 // ───────────────────────── scenes ─────────────────────────
 // scene(tFrom, tTo, draw) in ORIGINAL song seconds. draw(S) returns {dark, hud:false} optionally.
 const SCENES = [];
+const NOCROP = ['open', 'runaway', 'end card', 'for show', 'timeline', 'left turn', 'recursive', 'all the way', 'omega', 'nowhere', 'askew'];
 function scene(t0, t1, name, draw) { SCENES.push({ t0, t1, T0: toT(t0) + 0.02, T1: toT(t1) + 0.02, name, draw }); }
 function ctxFor(sc, T) {
   const lt = T - sc.T0, dur = sc.T1 - sc.T0;
@@ -328,11 +329,24 @@ function render(T) {
   if (!sc) sc = T < SCENES[0].T0 ? SCENES[0] : SCENES[SCENES.length - 1];
   const S = ctxFor(sc, T);
   X.save();
+  if (!NOCROP.includes(sc.name)) {
+    const bi = beat(T), per = toOrig(T) > 73 ? 2 : 4;
+    const step = Math.floor(Math.max(0, bi.i) / per);
+    const z = [1, 1.04, 1.015, 1.065][step % 4] + .025 * ((bi.i % per) + bi.ph) / per;
+    cam(z, 0, W / 2, H * .47);
+  }
   const r = sc.draw(S) || {};
   X.restore();
   X.setTransform(1, 0, 0, 1, 0, 0);
+  // misregistration: from verse 3 on, a second impression drifts off the first
+  const tO = toOrig(T);
+  const mis = tO > 73 && tO < 154 && r.paper !== false && sc.name !== 'for show' ? .11 * Math.pow(inv(73, 137, tO), 1.3) : 0;
+  if (mis > .005) {
+    X.save(); X.globalAlpha = mis; X.globalCompositeOperation = r.dark ? 'screen' : 'multiply';
+    X.drawImage(CV, jit(T, 5, 2 + 5 * mis / .11, 1 / 10), jit(T, 6, 1 + 4 * mis / .11, 1 / 10)); X.restore();
+  }
   if (r.paper !== false) finishPaper(T, !!r.dark);
-  if (r.hud !== false) hud(T, !!r.dark);
+  if (r.hud !== false) hud(T, !!r.dark, !!r.redbg);
   return sc.name;
 }
 

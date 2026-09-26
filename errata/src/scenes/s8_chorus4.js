@@ -9,7 +9,7 @@ scene(123.5, 126.0, 'hook 4', S => {
   g.addColorStop(0, 'rgba(20,19,18,0.28)'); g.addColorStop(.12, 'rgba(20,19,18,0)'); g.addColorStop(.5, 'rgba(20,19,18,0.28)'); g.addColorStop(.62, 'rgba(20,19,18,0)'); g.addColorStop(1, 'rgba(20,19,18,0.28)');
   X.fillStyle = g; X.fillRect(0, 0, W, H);
   pdoomHook(S, 123.5, .61, .86, { fg: PAL.ink, numColor: PAL.paper, shake: 3 });
-  return { dark: false };
+  return { dark: false, redbg: true };
 });
 
 // Just as foretold by Loom  (a tree of branching continuations)
@@ -94,14 +94,14 @@ scene(132.0, 137.2, 'redacted', S => {
     const bt = BEATS[b0 + Math.floor(i / 2)] || 1e9;
     redact(M - 6, y - 14, w + 12, 36, clamp((T - bt - (i % 2) * .08) / .1));
   }
-  predicted(a, T, { fam: 'serif', italic: true, size: 110, x: M, y: 1090, width: W - 2 * M });
+  predicted(a, T, { alt: { 2: 'tell.' }, fam: 'serif', italic: true, size: 110, x: M, y: 1090, width: W - 2 * M });
   // then the lyric itself
   const bEnd = beat(l.words[l.words.length - 1].T).i + 2;
   const r1 = clamp((T - (BEATS[bEnd] || 1e9)) / .12), r2 = clamp((T - (BEATS[bEnd + 1] || 1e9)) / .12);
   redact(M - 10, 190, W - 2 * M + 20, 140, r1);
   redact(M - 10, 990, W - 2 * M + 20, 140, r2);
   // everything goes
-  const all = clamp((T - (BEATS[bEnd + 2] || 1e9)) / .2);
+  const all = clamp((T - (S.T1 - .15)) / .12);
   if (all > 0) { X.fillStyle = PAL.ink; X.fillRect(0, 0, W, H * ease.io3(all)); }
   return { dark: all > .5 };
 });

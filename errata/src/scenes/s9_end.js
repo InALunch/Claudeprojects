@@ -13,7 +13,7 @@ scene(137.2, 140.5, 'for show', S => {
     X.restore();
     X.strokeStyle = PAL.ink; X.lineWidth = 3 / z; X.strokeRect(0, 0, W, H);
   }
-  predicted(l, T, { fam: 'serif', italic: true, size: 64, x: W / 2, y: H / 2 + 10, align: 'center', cursor: true });
+  predicted(l, T, { alt: { 4: ['us?', 'nothing?', 'you?'] }, fam: 'serif', italic: true, size: 150, x: W / 2, y: H / 2 - 60, align: 'center', width: W - 2 * M, lh: .95, cursor: true });
   X.restore();
   const a = clamp((T - S.T0 - 2.2) / .5);
   text('page 1 of ∞', W / 2, H - 160, { fam: 'mono', size: 24, align: 'center', alpha: a });
@@ -25,11 +25,11 @@ scene(140.5, 154.0, 'runaway', S => {
   const T = S.T;
   const x = clamp((S.t - 140.5) / 13.5);
   // cumulative number of cuts accelerates toward one per frame
-  const cuts = 4 * x + 30 * x * x + 90 * Math.pow(x, 4);
+  const cuts = 18 * x + 40 * x * x + 120 * Math.pow(x, 4);
   const ci = Math.floor(cuts);
   const list = MONTAGE();
   const sc = list[Math.floor(hash(ci * 7 + 1) * list.length)];
-  const within = (cuts - ci) / Math.max(.001, (4 + 60 * x + 360 * x * x * x) / FPS);
+  const within = 0;
   const TT = sc.T0 + (sc.T1 - sc.T0) * (.55 + .4 * hash(ci * 3)) + Math.min(.3, within * .05);
   X.save();
   // the camera is pushing in harder as it goes
@@ -57,14 +57,14 @@ scene(154.0, 170, 'end card', S => {
   bg(PAL.paper);
   const a = clamp((e - 1.0) / .08);
   X.globalAlpha = a;
-  text('2026-09-25', W / 2, 380, { fam: 'mono', size: 26, align: 'center', alpha: .6 });
-  const fo = { fam: 'mono', size: 64, weight: 700 };
+  text('2026-09-25', W / 2, 460, { fam: 'mono', size: 34, align: 'center', alpha: .6 });
+  const fo = { fam: 'mono', size: 104, weight: 700 };
   const base = 'p(doom) = ';
   const typed = e > 1.55 && e < 2.35 ? '?' : '';
   const w = measure(base + ' ', fo);
   const x0 = W / 2 - w / 2;
   text(base + typed, x0, H / 2 + 20, fo);
-  cursor(x0 + measure(base + typed, fo) - 2, H / 2 + 20, 64, e < 1.55 || e > 2.35 ? T : 0, PAL.red, e > 1.55 && e < 2.35);
+  cursor(x0 + measure(base + typed, fo) - 2, H / 2 + 20, 104, e < 1.55 || e > 2.35 ? T : 0, PAL.red, e > 1.55 && e < 2.35);
   X.globalAlpha = 1;
   return { hud: false };
 });

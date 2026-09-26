@@ -69,7 +69,7 @@ scene(100.5, 102.5, 'nowhere', S => {
     clip(x, y, s, rot, i % 29 === 0 ? PAL.red : '#CFC9BD', 2.5);
   }
   const size = lerp(96, 30, ease.in3(S.u));
-  predicted(l, T, { fam: 'serif', italic: true, size, x: cx, y: cy - size * .2, align: 'center', width: rad * 1.5, color: PAL.paper, ghost: DARK_GHOST });
+  predicted(l, T, { alt: { 2: 'no one' }, fam: 'serif', italic: true, size, x: cx, y: cy - size * .2, align: 'center', width: rad * 1.5, color: PAL.paper, ghost: DARK_GHOST });
   return { dark: true };
 });
 
@@ -106,7 +106,7 @@ scene(102.5, 105.4, 'fuse', S => {
 // Orthogonality thesis blues.  (the one blue moment: two axes that never touch)
 scene(105.4, 109.4, 'blues', S => {
   const T = S.T, l = L(105.4);
-  const fl = 1 - clamp(S.lt / .25);
+  const fl = S.lt < 2 / FPS ? 1 : 0;
   bg(PAL.blue);
   const ox = 240, oy = 1000;
   X.strokeStyle = PAL.paper; X.lineWidth = 4;

@@ -127,7 +127,7 @@ scene(9.0, 13.0, 'loss', S => {
   const [hx, hy] = P(uNow); X.fillStyle = PAL.red; X.beginPath(); X.arc(hx, hy, 11, 0, 7); X.fill();
   // the lyric sits above the chart; only "drop" rides the cliff
   const lineOnly = { ...l, words: l.words.filter(w => w.w !== 'drop') };
-  predicted(l, T, { x: M, y: 210, size: 74, width: W - 2 * M, lh: 1.0, per: (g, gi, n, it) => it.w === 'drop' ? { color: PAL.red } : null });
+  predicted(l, T, { x: M, y: 230, size: 100, width: W - 2 * M, lh: .98, per: (g, gi, n, it) => it.w === 'drop' ? { color: PAL.red } : null });
   const std = wordState(l, idxDrop, T);
   if (std.inked > 0) {
     const [cx0, cy0] = P(ud + .012);
@@ -148,7 +148,7 @@ scene(13.0, 17.9, 'boss', S => {
   const tSw = l.words.find(w => w.w === 'boss').T;
   const sw = ease.io3((T - tSw + .12) / .35);
   const bw = 560, bh = 190, cx = W / 2;
-  const top = 360, bot = 760;
+  const top = 330, bot = 700;
   const pos = (startTop) => {
     const a = startTop ? top : bot, b = startTop ? bot : top;
     const y = lerp(a, b, sw), x = cx + Math.sin(sw * Math.PI) * (startTop ? 240 : -240);
@@ -170,7 +170,7 @@ scene(13.0, 17.9, 'boss', S => {
   box(yx, yy, 'you', sw > .5 ? 'BOSS' : 'REPORTS TO: ME', sw > .5, sw > .5);
   box(mx, my, 'me', sw > .5 ? 'SERVANT' : 'BOSS', false, false);
   note(W / 2 + bw / 2 - 20, top + bh / 2 + 10, W / 2 + bw / 2 - 40, top + bh / 2 + 70, 'reporting line updated', clamp((T - tSw - .5) / .8), { size: 20 });
-  predicted(l, T, { x: W / 2, y: 1110, size: 70, align: 'center', width: W - 2 * M });
+  predicted(l, T, { x: W / 2, y: 1060, size: 100, align: 'center', width: W - 2 * M, lh: .98 });
 });
 
 // L6: ChatGPT, please don't eat me alive  (the name keeps getting revised; then the page gets eaten)
@@ -200,20 +200,22 @@ scene(17.9, 23.0, 'eat me', S => {
   const rest = { ...l, words: l.words.slice(1) };
   predicted(rest, T, { x: M, y: ny + 160, size: 124, width: W - 2 * M, lh: 1.0 });
   X.restore();
-  // bites: from "alive" to the chorus, one per beat, until the page is gone
-  const tA = l.words[l.words.length - 1].T + 0.35;
-  const bStart = beat(tA).i + 1;
-  const bites = [[W + 80, 900, 420], [W * .15, H + 90, 460], [-60, 380, 520], [W * .8, -120, 560], [W * .55, H * .55, 900], [W / 2, H / 2, 1400]];
-  bites.forEach(([x, y, r0], i) => {
-    const bt = BEATS[bStart + i];
-    if (!bt || T < bt) return;
-    const p = ease.outExpo((T - bt) / .12);
-    const rr = r0 * p;
-    X.fillStyle = PAL.ink; X.beginPath(); X.arc(x, y, rr, 0, 7); X.fill();
-    // scalloped rim: tooth marks
-    for (let k = 0; k < 26; k++) { const a = k / 26 * Math.PI * 2; X.beginPath(); X.arc(x + Math.cos(a) * rr, y + Math.sin(a) * rr, rr * .09, 0, 7); X.fill(); }
-  });
-  const dark = bStart + 4 < BEATS.length && T > BEATS[bStart + 4] + .05;
-  if (T > BEATS[bStart + 5] + .15) { bg(PAL.ink); pdoomHook(S, 23.0, .08, .15); }
+  // eaten: the page is tokenized block by block, right to left, until nothing is left
+  const tA = l.words[l.words.length - 1].T + 0.3;
+  const tEnd = BEATS[beat(tA).i + 5];
+  const cols = 9, rows = 12, bw = W / cols, bh = H / rows;
+  let eaten = 0;
+  for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+    const key = (1 - c / (cols - 1)) * .65 + hash(c * 31 + r * 7) * .35;
+    const tf = lerp(tA, tEnd, key);
+    const x = c * bw, y = r * bh;
+    if (T > tf) { X.fillStyle = PAL.ink; X.fillRect(x - .5, y - .5, bw + 1, bh + 1); eaten++; }
+    else if (T > tf - .28) {
+      X.strokeStyle = PAL.red; X.lineWidth = 3; X.strokeRect(x + 4, y + 4, bw - 8, bh - 8);
+      text(String(1000 + Math.floor(hash(c * 13 + r * 101) * 99000)), x + 10, y + 28, { fam: 'mono', size: 20, color: PAL.red });
+    }
+  }
+  const dark = eaten > cols * rows * .6;
+  if (T > tEnd + .05) { bg(PAL.ink); pdoomHook(S, 23.0, .08, .15); }
   return { dark };
 });

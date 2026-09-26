@@ -79,6 +79,10 @@ def main():
     if peak > 0.98:
         out *= 0.98 / peak
     sf.write(f'{A}/errata.wav', out, SR)
+    # master: +2 dB into a limiter (about -14 LUFS, -1 dBTP)
+    subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', f'{A}/errata.wav', '-af', 'volume=2dB,alimiter=limit=0.89:attack=3:release=60:level=disabled',
+                    '-ar', str(SR), '-c:a', 'pcm_s16le', f'{A}/master.wav'], check=True)
+    subprocess.run(['mv', f'{A}/master.wav', f'{A}/errata.wav'], check=True)
     subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', f'{A}/errata.wav', '-c:a', 'aac', '-b:a', '256k', f'{A}/errata.m4a'], check=True)
 
     json.dump({'t': [round(x, 4) for x in ts[::4]], 'T': [round(x, 5) for x in T[::4]],

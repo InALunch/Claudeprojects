@@ -79,22 +79,39 @@ scene(81.4, 85.0, 'left turn', S => {
   }
 });
 
-// Without a single CDR
+// Without a single CDR  (Lisp's cdr: how AI was supposed to work, before it just... didn't need to)
 scene(85.0, 89.4, 'cdr', S => {
   const T = S.T, l = L(85.0);
   bg(PAL.paper);
   predicted(l, T, { fam: 'serif', size: 116, x: M, y: 270, width: W - 2 * M, lh: .98 });
-  text('SIGN-OFF', M, 520, { fam: 'mono', size: 24, weight: 700 });
-  ['reviewer', 'date', 'signature'].forEach((h, i) => text(h, M + i * 320, 580, { fam: 'mono', size: 20, alpha: .6 }));
-  for (let r = 0; r < 6; r++) {
-    const y = 660 + r * 80, p = ease.out3((T - S.T0 - r * .08) / .4);
-    X.fillStyle = PAL.ink; X.globalAlpha = .5; X.fillRect(M, y, (W - 2 * M) * p, 2); X.globalAlpha = 1;
-  }
-  cursor(M + 4, 650, 50, T, PAL.ghost);
-  const tC = l.words[l.words.length - 1].T;
+  const code = [
+    ';; how AI was supposed to work',
+    '(defun reason (facts goal)',
+    '  (cond ((null facts) nil)',
+    '        ((matches (car facts) goal) t)',
+    '        (t (reason (cdr facts) goal))))',
+  ];
+  const fo = { fam: 'mono', size: 36 };
+  const y0 = 520, lh = 62, tC = l.words[l.words.length - 1].T;
+  const hot = clamp((T - tC) / .12);
+  const b0 = beat(tC).i + 1;
+  code.forEach((ln, i) => {
+    const y = y0 + i * lh;
+    const typed = Math.floor(ln.length * clamp((T - S.T0 - .1 - i * .18) / .35));
+    if (typed <= 0) return;
+    const shown = ln.slice(0, typed);
+    text(shown, M, y, { ...fo, color: i === 0 ? PAL.dim : PAL.ink, alpha: .85 });
+    // on "CDR", every cdr lights up red
+    let k = shown.indexOf('cdr');
+    while (k >= 0 && hot > 0) { text('cdr', M + measure(shown.slice(0, k), fo), y, { ...fo, weight: 700, color: PAL.red, alpha: hot }); k = shown.indexOf('cdr', k + 1); }
+    // then the program is struck out, a line per beat
+    const bt = BEATS[b0 + Math.max(0, i - 1)] || 1e9;
+    if (i > 0) strike(M, M + measure(ln, fo), y, 36, clamp((T - bt) / .15), { seed: i + 30, w: 5 });
+  });
+  note(M + 380, y0 + 4 * lh + 20, M - 10, y0 + 5 * lh + 60, 'GOFAI, 1958–. turned out optional.', clamp((T - (BEATS[b0 + 4] || 1e9)) / .7));
   const a = clamp((T - tC) / .15);
-  text('0', W - M, 1230, { fam: 'sans', weight: 900, size: 260, color: PAL.red, align: 'right', alpha: a });
-  text('reviews completed', W - M, 1000, { fam: 'mono', size: 28, color: PAL.red, align: 'right', alpha: a });
+  text('0', W - M, 1230, { fam: 'sans', weight: 900, size: 230, color: PAL.red, align: 'right', alpha: a });
+  text('(cdr ...) calls in a transformer', W - M, 1010, { fam: 'mono', size: 28, color: PAL.red, align: 'right', alpha: a });
 });
 
 // Gato, please don't let me go  (the words hang by threads; the threads go)

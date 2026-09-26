@@ -16,7 +16,7 @@ T_ACC_END = 137.2   # last chorus ends; "Was it all for show?" starts
 T_SHOW_END = 140.5  # outro starts
 T_CUT = 154.0       # hard cut (the singularity)
 PRE = 2.6           # silent cold open before the music
-TAIL = 5.6          # silence after the cut
+TAIL = 8.6          # silence after the cut
 S0, S1 = 1.06, 1.40
 
 
@@ -77,7 +77,7 @@ def main():
     # silence before the music (the title gets revised with key clicks) and after the cut (the end card)
     out = np.concatenate([np.zeros((int(PRE * SR), 2)), out, np.zeros((int(TAIL * SR), 2))])
     out = add_clicks(out, [(0.9, 0.05, 0.22), (1.35, 0.06, 0.03), (1.47, 0.055, 0.03), (1.59, 0.06, 0.03), (1.71, 0.055, 0.03),
-                           (PRE + Tend + 3.3, 0.06, 0.03), (PRE + Tend + 4.3, 0.045, 0.03)])
+                           (PRE + Tend + 4.8, 0.06, 0.03), (PRE + Tend + 6.8, 0.045, 0.03)])
     peak = np.max(np.abs(out))
     if peak > 0.98:
         out *= 0.98 / peak

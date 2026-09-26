@@ -14,10 +14,10 @@ fs.mkdirSync(`${ROOT}/out/stills`, { recursive: true });
 
 async function page(browser) {
   const p = await browser.newPage();
-  await p.setViewport({ width: 1200, height: 1500 });
+  await p.setViewport({ width: 1200, height: 2000 });
   p.on('console', m => { if (m.type() === 'error') console.error('[page]', m.text()); });
   p.on('pageerror', e => console.error('[pageerror]', e.message));
-  await p.goto('file://' + ROOT + '/index.html');
+  await p.goto('file://' + ROOT + '/index.html' + (args.vert ? '?vert=1' : ''));
   await p.evaluate(() => window.FONTS_READY);
   return p;
 }
@@ -41,7 +41,7 @@ async function sheet() {
   const b = await launch(); const p = await page(b);
   const ts = []; for (let T = a; T <= bb + 1e-6; T += st) ts.push(+T.toFixed(3));
   const url = await p.evaluate((ts) => {
-    const cols = 6, cw = 270, ch = 338, rows = Math.ceil(ts.length / cols);
+    const c0 = document.getElementById('c'), cols = 6, cw = 270, ch = Math.round(270 * c0.height / c0.width), rows = Math.ceil(ts.length / cols);
     const s = document.createElement('canvas'); s.width = cols * cw; s.height = rows * (ch + 22); const g = s.getContext('2d');
     g.fillStyle = '#111'; g.fillRect(0, 0, s.width, s.height);
     ts.forEach((T, i) => {
@@ -88,7 +88,7 @@ if (args.still) await stills(); else if (args.sheet) await sheet(); else if (arg
 if (args.share) {
   const src = path.resolve(ROOT, String(args.share)), dst = src.replace(/\.mp4$/, '_share.mp4');
   const run = a => new Promise((res, rej) => spawn('ffmpeg', a, { stdio: 'inherit', cwd: `${ROOT}/out` }).on('close', c => c ? rej(c) : res()));
-  const v = ['-c:v', 'libx264', '-preset', 'slow', '-b:v', '1650k', '-maxrate', '3000k', '-bufsize', '6000k', '-pix_fmt', 'yuv420p', '-tune', 'grain'];
+  const v = ['-c:v', 'libx264', '-preset', 'slow', '-b:v', '1550k', '-maxrate', '3000k', '-bufsize', '6000k', '-pix_fmt', 'yuv420p', '-tune', 'grain'];
   await run(['-y', '-v', 'error', '-i', src, ...v, '-pass', '1', '-an', '-f', 'mp4', '/dev/null']);
   await run(['-y', '-v', 'error', '-i', src, ...v, '-pass', '2', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', dst]);
   console.log(dst, (fs.statSync(dst).size / 1e6).toFixed(1) + ' MB');

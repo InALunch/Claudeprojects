@@ -3,6 +3,7 @@
 function titleCard(T, o) {
   const INK = o.inv ? PAL.paper : PAL.ink;
   bg(o.inv ? PAL.ink : PAL.paper);
+  if (VERT) return titleCardVert(T, o, INK);
   X.save();
   cam(o.zoom, 0, W / 2, H / 2);
   const y0 = 400;
@@ -19,6 +20,26 @@ function titleCard(T, o) {
     text('2026'.slice(0, o.typed), M + w24 + 50, yy - 4, { fam: 'sans', weight: 800, size: 96, color: PAL.red });
   }
   note(M + w24 + 120, yy + 16, M + 4, yy + 110, 'it moved faster than we thought', o.note, { size: 30 });
+  X.restore();
+}
+
+// the Shorts cover layout, in device pixels (1080x1920), kept clear of the Shorts UI
+function titleCardVert(T, o, INK) {
+  X.save(); X.setTransform(1, 0, 0, 1, 0, 0);
+  cam(o.zoom, 0, DW / 2, 800);
+  text("I'm upping", M, 400, { fam: 'serif', italic: true, size: 160, color: INK });
+  text('my', M, 550, { fam: 'serif', italic: true, size: 160, color: INK });
+  const s = fit('P(DOOM)', 880, { fam: 'sans', weight: 900 });
+  text('P(DOOM)', M - 6, 575 + s * .84, { fam: 'sans', weight: 900, size: s, color: INK }, (g, i) => ({ dy: jit(T, i + 1, o.boil, 1 / 8), dx: jit(T, i + 9, o.boil * .6, 1 / 8) }));
+  const yy = 575 + s * .84 + 190;
+  const w24 = text('(2024)', M, yy, { fam: 'serif', size: 120, color: INK });
+  if (o.cursor) cursor(M + w24 + 6, yy, 120, T, INK);
+  strike(M, M + w24, yy, 120, o.strike, { seed: 3 });
+  if (o.typed > 0) {
+    caret(M + w24 + 36, yy, 120, 1);
+    text('2026'.slice(0, o.typed), M + w24 + 70, yy - 2, { fam: 'sans', weight: 800, size: 126, color: PAL.red });
+  }
+  note(M + w24 + 150, yy + 20, M + 4, yy + 130, 'it moved faster than we thought', o.note, { size: 32 });
   X.restore();
 }
 

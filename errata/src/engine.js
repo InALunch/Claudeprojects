@@ -3,6 +3,12 @@
 'use strict';
 const W = 1080, H = 1350, FPS = 30;
 const CV = document.getElementById('c');
+// ?vert: a 1080x1920 cut for Shorts. Scenes still draw in the 1080x1350 space, placed at 90% under a HUD
+// band; backgrounds extend to the full frame; the title card is laid out natively (it is the cover).
+const VERT = new URLSearchParams(location.search).has('vert');
+const DW = 1080, DH = VERT ? 1920 : 1350, VK = .9, VOX = (1080 - 1080 * .9) / 2, VOY = 235;
+CV.height = DH;
+const baseTransform = () => VERT ? X.setTransform(VK, 0, 0, VK, VOX, VOY) : X.setTransform(1, 0, 0, 1, 0, 0);
 const X = CV.getContext('2d');
 const PAL = { paper: '#ECE8DF', ink: '#141312', red: '#E0341F', ghost: '#ADA89D', blue: '#2437E6', dim: '#6E6A62' };
 const FNT = { serif: '"Instrument Serif"', sans: '"Inter Tight"', mono: '"JetBrains Mono"' };
@@ -254,14 +260,14 @@ const FIBER = (function () {
 function bg(color) { X.fillStyle = color; X.fillRect(-W, -H, W * 3, H * 3); }
 function finishPaper(T, dark) {
   X.save();
-  X.globalCompositeOperation = 'overlay'; X.globalAlpha = dark ? .35 : .55; X.drawImage(FIBER, 0, 0);
+  X.globalCompositeOperation = 'overlay'; X.globalAlpha = dark ? .35 : .55; X.drawImage(FIBER, 0, 0, DW, DH);
   X.globalCompositeOperation = dark ? 'screen' : 'multiply'; X.globalAlpha = dark ? .05 : .09;
-  const f = Math.floor(T * FPS / 2) % GRAIN.length; X.drawImage(GRAIN[f], 0, 0, W, H);
+  const f = Math.floor(T * FPS / 2) % GRAIN.length; X.drawImage(GRAIN[f], 0, 0, DW, DH);
   X.restore();
   // vignette
-  const g = X.createRadialGradient(W / 2, H / 2, H * .35, W / 2, H / 2, H * .85);
+  const g = X.createRadialGradient(DW / 2, DH / 2, DH * .35, DW / 2, DH / 2, DH * .85);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, dark ? 'rgba(0,0,0,0.35)' : 'rgba(60,40,20,0.14)');
-  X.fillStyle = g; X.fillRect(0, 0, W, H);
+  X.fillStyle = g; X.fillRect(0, 0, DW, DH);
 }
 
 // ───────────────────────── HUD ─────────────────────────
@@ -315,7 +321,8 @@ function hud(T, dark, redbg) {
   const s = 25;
   X.save();
   X.globalAlpha = .9;
-  const top = 62, bot = H - 46;
+  // vertical: everything in one band at the top (Shorts covers the bottom with its own UI)
+  const top = VERT ? 132 : 62, bot = VERT ? 208 : H - 46;
   text("I'M UPPING MY P(DOOM)", M, top, { fam: 'mono', size: s, color: col, weight: 700 });
   const rev = DATA.lines.filter(l => l.T0 <= T).length;
   text(`rev.${String(rev).padStart(2, '0')} · 2026 edit`, M, top + 32, { fam: 'mono', size: s, color: col });
@@ -347,7 +354,7 @@ function ctxFor(sc, T) {
   return { T, lt, dur, T0: sc.T0, T1: sc.T1, u: clamp(lt / dur), t: toOrig(T), sc, b: beat(T), at: t => toT(t) + 0.02 };
 }
 function render(T) {
-  X.setTransform(1, 0, 0, 1, 0, 0);
+  baseTransform();
   X.globalAlpha = 1; X.globalCompositeOperation = 'source-over';
   let sc = null;
   for (const s of SCENES) if (T >= s.T0 && T < s.T1) sc = s;

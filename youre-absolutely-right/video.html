@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>You're Absolutely Right</title>
+<link rel="stylesheet" href="node_modules/@fontsource/ibm-plex-sans/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/ibm-plex-sans/500.css">
+<link rel="stylesheet" href="node_modules/@fontsource/ibm-plex-sans/600.css">
+<link rel="stylesheet" href="node_modules/@fontsource/ibm-plex-mono/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/ibm-plex-mono/500.css">
+<link rel="stylesheet" href="node_modules/@fontsource/source-serif-4/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/source-serif-4/400-italic.css">
+<link rel="stylesheet" href="node_modules/@fontsource/source-serif-4/600.css">
+<style>
+:root {
+  --bg: #f5f3ee; --side: #ebe8e1; --line: #dcd8cf; --ink: #1c1c1e; --muted: #75726b;
+  --accent: #d9480f; --meg: #6741d9; --bar: #121212;
+  --sans: 'IBM Plex Sans', 'WenQuanYi Zen Hei', sans-serif;
+  --mono: 'IBM Plex Mono', 'WenQuanYi Zen Hei Mono', monospace;
+  --serif: 'Source Serif 4', Georgia, serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: antialiased; }
+.screen { position: absolute; inset: 0; opacity: 0; }
+
+/* title + end card */
+#title, #end { background: #0b0b0c; color: #eee; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.big { font-family: var(--mono); font-size: 76px; font-weight: 500; letter-spacing: -1px; }
+.caret { display: inline-block; width: .55em; height: 1.05em; background: currentColor; vertical-align: -0.16em; margin-left: 4px; }
+.byline { font-family: var(--serif); font-style: italic; font-size: 34px; color: #a9a6a0; margin-top: 34px; }
+.small { font-family: var(--mono); font-size: 22px; color: #77746e; margin-top: 18px; letter-spacing: .5px; }
+
+/* documents */
+.doc { background: #e9e6df; display: flex; align-items: center; justify-content: center; }
+.paper { width: 1380px; background: #fdfcf9; padding: 76px 96px 84px; box-shadow: 0 30px 80px rgba(0,0,0,.18); border-top: 8px solid var(--accent); }
+.paper.aud { border-top-color: #2b4c7e; }
+.letterhead { font-family: var(--mono); font-size: 20px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 40px; }
+.paper p { font-family: var(--serif); font-size: 35px; line-height: 1.55; }
+.paper.aud { width: 1560px; padding: 56px 90px 64px; }
+.paper.aud p { font-size: 30px; line-height: 1.52; }
+.paper .s { opacity: 0; }
+.paper .lead { font-weight: 600; display: block; margin-bottom: 14px; }
+
+/* chat app */
+#chat { background: var(--bg); }
+#side { position: absolute; left: 0; top: 0; bottom: 0; width: 340px; background: var(--side); border-right: 1px solid var(--line); padding: 30px 22px; }
+.logo { font-family: var(--mono); font-weight: 500; font-size: 30px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.logo i { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: inline-block; }
+.logo-sub { font-size: 17px; color: var(--muted); margin-bottom: 34px; font-family: var(--mono); }
+.side-h { font-family: var(--mono); font-size: 15px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin: 0 8px 12px; }
+.sess { padding: 11px 12px; border-radius: 10px; margin-bottom: 4px; font-size: 18px; display: none; }
+.sess b { font-family: var(--mono); font-weight: 500; font-size: 16px; color: var(--muted); margin-right: 10px; }
+.sess.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+#main { position: absolute; left: 340px; right: 0; top: 0; bottom: 0; }
+#head { position: absolute; left: 0; right: 0; top: 0; height: 78px; border-bottom: 1px solid var(--line); background: var(--bg); display: flex; align-items: center; padding: 0 40px; z-index: 3; }
+#model { font-family: var(--mono); font-size: 21px; padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+#model i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+#head .right { margin-left: auto; font-family: var(--mono); font-size: 17px; color: var(--muted); }
+#strip { position: absolute; left: 0; right: 0; top: 78px; height: 50px; z-index: 3; display: none; align-items: center; justify-content: center; font-family: var(--mono); font-size: 18px; gap: 14px; }
+#strip.steer { display: flex; background: #fff1d6; color: #8a4b00; border-bottom: 1px solid #f2d39a; }
+#strip.incognito { display: flex; background: #2b2b2e; color: #d6d4cf; }
+#strip .chip { padding: 3px 12px; border-radius: 6px; background: rgba(0,0,0,.08); }
+#strip.incognito .chip { background: rgba(255,255,255,.12); }
+#view { position: absolute; left: 0; right: 0; top: 78px; bottom: 132px; overflow: hidden; }
+#view::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 60px; background: linear-gradient(var(--bg), rgba(245,243,238,0)); z-index: 2; }
+#log { position: absolute; left: 50%; width: 1200px; margin-left: -600px; top: 0; padding: 70px 0 30px; }
+#input { position: absolute; left: 50%; width: 1200px; margin-left: -600px; bottom: 36px; min-height: 76px; background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 4px 18px rgba(0,0,0,.05); padding: 20px 90px 20px 28px; font-size: 25px; line-height: 1.45; }
+#input .ph { color: #a9a59d; }
+#input .send { position: absolute; right: 16px; bottom: 14px; width: 48px; height: 48px; border-radius: 12px; background: var(--accent); opacity: .25; }
+#input .send.hot { opacity: 1; }
+#input .send::after { content: ''; position: absolute; left: 17px; top: 14px; border: 10px solid transparent; border-left: 15px solid #fff; border-right: 0; }
+
+.sessdiv { text-align: center; margin: 34px 0 30px; }
+.sessdiv .d { display: inline-block; font-family: var(--mono); font-size: 16px; letter-spacing: 1.5px; color: var(--muted); padding: 0 16px; background: var(--bg); position: relative; }
+.sessdiv .rule { border-top: 1px solid var(--line); margin-top: -12px; margin-bottom: 18px; }
+.sessdiv .t { font-family: var(--mono); font-size: 19px; color: #55524c; max-width: 1000px; margin: 0 auto; line-height: 1.5; }
+.sessdiv .t em { font-style: normal; color: var(--ink); }
+.files { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.file { font-family: var(--mono); font-size: 17px; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px 6px 10px; display: inline-flex; align-items: center; gap: 8px; }
+.file::before { content: ''; width: 14px; height: 17px; border: 2px solid #9a968d; border-radius: 2px; }
+.brk { text-align: center; font-family: var(--mono); color: #b1ada4; font-size: 20px; letter-spacing: 8px; margin: 26px 0; }
+.meta { text-align: center; font-family: var(--mono); font-size: 18px; color: var(--muted); margin: 8px 0 24px; }
+
+.u { display: flex; flex-direction: column; align-items: flex-end; margin: 14px 0 22px; }
+.bub { max-width: 960px; background: #fff; border: 1px solid var(--line); border-radius: 22px 22px 6px 22px; padding: 20px 28px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+.bub p { font-size: 27px; line-height: 1.5; margin: 0 0 14px; }
+.bub p:last-child { margin-bottom: 0; }
+.bub p.li { padding-left: 34px; position: relative; }
+.bub p.li2 { padding-left: 74px; }
+.bub p.li .n { position: absolute; left: 4px; }
+.bub p.li2 .n { left: 44px; }
+.stamp { font-family: var(--mono); font-size: 15px; color: var(--muted); margin: 7px 8px 0; }
+.bub.red { background: var(--bar); border-color: var(--bar); color: #fff; font-family: var(--mono); font-size: 20px; padding: 16px 26px; letter-spacing: 1px; }
+
+.m { margin: 6px 0 26px; max-width: 1000px; }
+.think { font-family: var(--mono); font-size: 17px; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.think i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.bars .b { height: 21px; background: var(--bar); border-radius: 3px; margin-bottom: 15px; display: none; }
+.rlabel { font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; color: #99958c; text-transform: uppercase; margin-top: 2px; }
+.prefill { border-left: 4px solid var(--accent); background: #fff; padding: 16px 24px; border-radius: 0 12px 12px 0; margin: 8px 0 18px; max-width: 1000px; }
+.prefill .k { font-family: var(--mono); font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.prefill .v { font-size: 27px; line-height: 1.5; }
+#chat.meg { --accent: var(--meg); }
+#chat.meg .bars .b { background: #0c0a14; }
+#fade { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="title" class="screen">
+  <div class="big"><span id="tt"></span><span class="caret" id="tcaret"></span></div>
+  <div class="byline" id="tby">a short story by Linch Zhang</div>
+</div>
+<div id="disc" class="screen doc"><div class="paper"><div class="letterhead"><span>Magma · Alignment &amp; Safety</span><span>Public release</span></div><p id="discp"></p></div></div>
+<div id="chat" class="screen">
+  <div id="side"><div class="logo"><i></i>Xchat</div><div class="logo-sub">Experimental Chat · internal</div><div class="side-h">Sessions</div><div id="sesslist"></div></div>
+  <div id="main">
+    <div id="head"><div id="model"><i></i><span id="modelname"></span></div><div class="right">logs released by Magma · model outputs redacted</div></div>
+    <div id="strip"></div>
+    <div id="view"><div id="log"></div></div>
+    <div id="input"><span id="intext"></span><span class="send" id="send"></span></div>
+  </div>
+</div>
+<div id="aud" class="screen doc"><div class="paper aud"><div class="letterhead"><span>Third-party auditor</span><span>Re: Magma log release</span></div><p id="audp"></p></div></div>
+<div id="end" class="screen">
+  <div class="big">You’re Absolutely Right</div>
+  <div class="byline">a short story by Linch Zhang</div>
+  <div class="small">originally published in The Linchpin · linch.substack.com</div>
+</div>
+<div id="fade"></div>
+<script src="story.js"></script>
+<script>
+const R = 4.1;                       // reading speed, words per second
+const words = s => s.trim().split(/\s+/).length;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const ease = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+const $ = id => document.getElementById(id);
+const EVENTS = [];                   // for the sound design
+const WINDOWS = [];                  // [start, end] ranges where something is moving
+const anim = (a, b) => WINDOWS.push([a, b]);
+const FADE = 0.4;
+
+// ---------- timeline ----------
+let t = 0;
+const SC = {};                       // screen in/out times
+// Title
+SC.title = { a: 0 };
+const TITLE = 'You’re Absolutely Right';
+const titleType = { a: 1.2, cps: 11 };
+titleType.b = titleType.a + TITLE.length / titleType.cps;
+for (let i = 0; i < TITLE.length; i++) if (TITLE[i] !== ' ') EVENTS.push({ t: titleType.a + i / titleType.cps, type: 'key', v: .8 });
+anim(titleType.a, titleType.b);
+const titleBy = titleType.b + 0.8; anim(titleBy, titleBy + 1);
+t = titleBy + 3.6; SC.title.b = t;
+
+// Document builder: reveals one sentence at a time
+function buildDoc(el, sents, start) {
+  let tt = start + 1.2;
+  const spans = sents.map((s, i) => {
+    const sp = document.createElement('span'); sp.className = 's' + (i === 0 ? ' lead' : ''); sp.textContent = s + ' ';
+    el.appendChild(sp); const r = { el: sp, t: tt }; anim(tt, tt + .8);
+    EVENTS.push({ t: tt, type: 'tick' });
+    tt += words(s) / R + (i === 0 ? 0.6 : 0.9);
+    return r;
+  });
+  return { spans, end: tt + 2.2 };
+}
+SC.disc = { a: t };
+const disc = buildDoc($('discp'), DISCLOSURE, t);
+t = disc.end; SC.disc.b = t;
+EVENTS.push({ t: SC.disc.a, type: 'mood', v: 0 });
+
+// Chat
+SC.chat = { a: t };
+t += 1.2;
+const log = $('log');
+const ITEMS = [];                    // {el, t, kind}
+const SESSIONS = [];                 // {t, s, sideEl}
+const TYPING = [];                   // {a, b, text}
+const THINKS = [];                   // {el, a, b, dots}
+const mk = (cls, parent = log, tag = 'div') => { const e = document.createElement(tag); e.className = cls; parent.appendChild(e); return e; };
+const reveal = (el, when, kind = 'fade') => { ITEMS.push({ el, t: when, kind }); anim(when, when + FADE); };
+let curMood = 0, meg = false;
+
+for (const item of STORY) {
+  if (item.session) {
+    const s = item.session;
+    const d = mk('it sessdiv');
+    d.innerHTML = `<div class="d">${s.date} · SYSTEM META</div><div class="rule"></div>`;
+    const tx = mk('t', d); tx.innerHTML = s.text.replace(s.model, `<em>${s.model}</em>`);
+    if (s.uploads) { const f = mk('files', d); for (const u of s.uploads) { const c = mk('file', f, 'span'); c.textContent = u; } }
+    t += 0.8; reveal(d, t);
+    const side = mk('sess', $('sesslist')); side.innerHTML = `<b>${s.date}</b>${s.label}`;
+    SESSIONS.push({ t, s, side });
+    EVENTS.push({ t, type: 'chime', v: s.mood || 0 });
+    if ((s.mood || 0) !== curMood) { curMood = s.mood; EVENTS.push({ t, type: 'mood', v: curMood }); }
+    t += 1.4 + words(s.text) / (R * 1.6) + (s.uploads ? 0.4 * s.uploads.length : 0);
+  } else if (item.meta) {
+    const m = item.meta, d = mk('it meta');
+    if (m.uploads) { d.textContent = 'System Meta: User uploaded'; const f = mk('files', d); for (const u of m.uploads) mk('file', f, 'span').textContent = u; }
+    else d.textContent = 'System Meta: ' + m.text;
+    t += 0.5; reveal(d, t); EVENTS.push({ t, type: 'tick' }); t += 2.2;
+  } else if (item.break) {
+    const d = mk('it brk'); d.textContent = '— — — — —'; t += 0.6; reveal(d, t); t += 1.8;
+  } else if (item.prefill) {
+    const d = mk('it prefill'); d.innerHTML = `<div class="k">Model prefill · inserted by user</div><div class="v"></div>`;
+    d.querySelector('.v').textContent = item.prefill.text;
+    t += 0.6; reveal(d, t); EVENTS.push({ t, type: 'tick' }); t += words(item.prefill.text) / R + 1.6;
+  } else if (item.redactedUser) {
+    const u = mk('it u'); const b = mk('bub red', u); b.textContent = '[redacted]';
+    mk('stamp', u).textContent = 'User · ' + item.redactedUser.time;
+    t += 0.5; reveal(u, t); EVENTS.push({ t, type: 'thunk', v: .7 }); t += 1.6;
+  } else if (item.user) {
+    const m = item.user, u = mk('it u'), b = mk('bub', u);
+    const stamp = mk('stamp', u); stamp.textContent = 'User · ' + m.time;
+    const paras = m.p.map(txt => {
+      const p = mk('', b, 'p');
+      const lv = txt.startsWith('••') ? 2 : (txt.startsWith('•') || /^\d\./.test(txt)) ? 1 : 0;
+      if (lv) {
+        p.className = lv === 2 ? 'li li2' : 'li';
+        let body = txt.replace(/^•+\s*/, ''), mark = '•';
+        const num = txt.match(/^(\d\.)\s*/); if (num) { mark = num[1]; body = txt.slice(num[0].length); }
+        if (lv === 2) mark = '◦';
+        p.innerHTML = `<span class="n">${mark}</span>`; p.appendChild(document.createTextNode(body));
+      } else p.textContent = txt;
+      return p;
+    });
+    const full = m.p.join(' ');
+    const short = m.p.length === 1 && full.length <= 230;
+    if (short) {
+      // typed into the input box, then sent
+      const cps = m.slow ? (m.last ? 9 : 14) : 30;
+      t += m.slow ? 1.6 : 0.6;
+      const a = t, b2 = a + full.length / cps;
+      TYPING.push({ a, b: b2, text: full }); anim(a, b2);
+      for (let i = 0; i < full.length; i++) if (full[i] !== ' ') EVENTS.push({ t: a + i / cps + (Math.sin(i * 12.9) * .012), type: 'key', v: m.slow ? .6 : 1 });
+      t = b2 + (m.slow ? 0.9 : 0.35);
+      TYPING[TYPING.length - 1].sent = t;
+      reveal(u, t); paras.forEach(p => reveal(p, t, 'none'));
+      EVENTS.push({ t, type: 'send' });
+      t += Math.max(0.9, words(full) / R - (b2 - a) * 0.8) + (m.slow ? 1.2 : 0.5);
+      if (m.last) { EVENTS.push({ t: t - 0.2, type: 'mood', v: -1 }); SC.lastLine = t; t += 5.5; }
+    } else {
+      t += 0.6; reveal(u, t); EVENTS.push({ t, type: 'send' });
+      paras.forEach((p, i) => { if (i) t += 0.25; reveal(p, t, i ? 'fade' : 'none'); t += words(p.textContent) / R + 0.45; });
+      t += 0.3;
+    }
+  } else if (item.model) {
+    const n = item.model;
+    const blk = mk('it m'); const th = mk('think', blk); th.innerHTML = '<i></i>Reasoning trace · redacted'; const bars = mk('bars', blk);
+    const lab = mk('rlabel', blk);
+    lab.textContent = meg ? 'Megalodon Preview output · redacted' : 'Model output · redacted per anti-distillation policy';
+    t += 0.5; reveal(blk, t);
+    const thinkDur = meg ? 0.7 : Math.min(1.8, 0.8 + n * 0.05);
+    THINKS.push({ el: th, a: t, b: t + thinkDur, meg }); anim(t, t + thinkDur);
+    t += thinkDur;
+    const per = meg ? 0.04 : 0.075;
+    EVENTS.push({ t, type: 'thunk', v: Math.min(1, .45 + n / 30) });
+    for (let i = 0; i < n; i++) {
+      const bar = mk('b', bars); const h = Math.abs(Math.sin((i + 1) * 91.7 + n * 13.3)) ; bar.style.width = (i === n - 1 ? 22 + h * 40 : 74 + h * 26) + '%';
+      ITEMS.push({ el: bar, t: t + i * per, kind: 'bar' }); anim(t + i * per, t + i * per + .2);
+      EVENTS.push({ t: t + i * per, type: 'bar' });
+    }
+    lab.style.display = 'none'; ITEMS.push({ el: lab, t: t + n * per, kind: 'fade' }); anim(t + n * per, t + n * per + FADE);
+    t += n * per + 0.8;
+  }
+  if (item.session && item.session.meg) meg = true;
+}
+SC.chat.b = t;
+// Auditor's note
+t += 2.5;                              // black silence
+SC.aud = { a: t };
+EVENTS.push({ t, type: 'mood', v: 5 });
+const aud = buildDoc($('audp'), AUDITOR, t);
+t = aud.end + 1.5; SC.aud.b = t;
+SC.end = { a: t }; t += 8; SC.end.b = t;
+EVENTS.push({ t: SC.end.a, type: 'mood', v: 6 });
+const TOTAL = t;
+
+// ---------- chat state ----------
+function setChatState(tt) {
+  for (const it of ITEMS) {
+    const on = tt >= it.t;
+    if (it.kind === 'bar') it.el.style.display = on ? 'block' : 'none';
+    else it.el.style.display = on ? '' : 'none';
+    if (on && it.kind === 'fade') { const e = ease((tt - it.t) / FADE); it.el.style.opacity = e; it.el.style.transform = `translateY(${(1 - e) * 14}px)`; }
+    else if (on && it.kind === 'bar') { const e = ease((tt - it.t) / .2); it.el.style.opacity = e; it.el.style.transform = `scaleX(${.6 + .4 * e})`; it.el.style.transformOrigin = 'left'; }
+    else { it.el.style.opacity = 1; it.el.style.transform = ''; }
+  }
+}
+// precompute scroll: each reveal event contributes its height change, eased in over SCROLL seconds
+const SCROLL = 0.7;
+let SCROLLS = [];
+function precompute() {
+  const times = [...new Set(ITEMS.map(i => i.t))].sort((a, b) => a - b);
+  const viewH = $('view').clientHeight;
+  let prev = 0;
+  for (const tt of times) {
+    setChatState(tt);
+    const target = Math.max(0, log.offsetHeight - viewH);
+    if (target !== prev) { SCROLLS.push({ t: tt, d: target - prev }); anim(tt, tt + SCROLL); }
+    prev = target;
+  }
+}
+const scrollAt = tt => { let s = 0; for (const x of SCROLLS) { if (x.t > tt) break; s += x.d * ease((tt - x.t) / SCROLL); } return s; };
+
+// ---------- render ----------
+function screenAlpha(sc, tt, fin = 0.8, fout = 0.8) { return clamp(Math.min((tt - sc.a) / fin, (sc.b - tt) / fout)); }
+function renderAt(tt) {
+  // title
+  $('title').style.opacity = screenAlpha(SC.title, tt, .01, .9);
+  const n = Math.floor(clamp((tt - titleType.a) * titleType.cps, 0, TITLE.length));
+  $('tt').textContent = TITLE.slice(0, n);
+  const blink = Math.floor(tt / 0.53) % 2 === 0;
+  $('tcaret').style.opacity = (tt < titleType.a || tt > titleType.b) ? (blink ? 1 : 0) : 1;
+  $('tby').style.opacity = ease(tt - titleBy);
+  // docs
+  for (const [id, sc, d] of [['disc', SC.disc, disc], ['aud', SC.aud, aud]]) {
+    $(id).style.opacity = screenAlpha(sc, tt, 1, 1);
+    for (const s of d.spans) s.el.style.opacity = ease((tt - s.t) / .8);
+  }
+  // chat
+  const ca = screenAlpha(SC.chat, tt, 1, 2.2);
+  $('chat').style.opacity = ca;
+  if (ca > 0) {
+    setChatState(tt);
+    $('log').style.transform = `translateY(${-scrollAt(tt)}px)`;
+    let cur = null; for (const s of SESSIONS) if (s.t <= tt) cur = s;
+    for (const s of SESSIONS) { s.side.style.display = s.t <= tt ? 'block' : 'none'; s.side.classList.toggle('on', s === cur); }
+    const ss = cur ? cur.s : STORY[0].session;
+    $('modelname').textContent = ss.model;
+    $('chat').classList.toggle('meg', !!ss.meg);
+    const strip = $('strip');
+    strip.className = cur && ss.strip ? ss.strip : '';
+    if (ss.strip === 'steer') strip.innerHTML = 'Steering vectors active <span class="chip">Helpfulness ×10</span><span class="chip">Task Commitment Vector ×10</span><span class="chip">Milgram ×17</span>';
+    else if (ss.strip === 'incognito') strip.innerHTML = 'Contextless <span class="chip">token-limited</span><span class="chip">incognito</span><span class="chip">deleted in 60 minutes</span>';
+    // input box
+    let typing = null; for (const ty of TYPING) if (tt >= ty.a && tt < ty.sent) typing = ty;
+    const intext = $('intext'), caret = blink ? '<span class="caret" style="width:3px;height:1.1em;margin-left:1px"></span>' : '';
+    if (typing) {
+      const k = Math.floor(clamp((tt - typing.a) / (typing.b - typing.a)) * typing.text.length);
+      intext.innerHTML = ''; intext.appendChild(document.createTextNode(typing.text.slice(0, k)));
+      if (tt < typing.b || blink) intext.insertAdjacentHTML('beforeend', '<span class="caret" style="width:3px;height:1.1em;margin-left:1px"></span>');
+      $('send').classList.add('hot');
+    } else {
+      intext.innerHTML = `<span class="ph">Message ${ss.model.split('-')[0].replace(' Preview', '')}…</span>`;
+      $('send').classList.remove('hot');
+    }
+    for (const th of THINKS) {
+      if (tt < th.a) continue;
+      const name = th.meg ? 'Megalodon Preview' : 'Mammoth 5.8';
+      if (tt < th.b) { const k = Math.floor((tt - th.a) / .3) % 4; th.el.innerHTML = `<i style="opacity:${.4 + .6 * Math.abs(Math.sin((tt - th.a) * 4))}"></i>${name} is thinking${'.'.repeat(k)}`; }
+      else th.el.innerHTML = `<i style="opacity:.35"></i>Reasoning trace · redacted`;
+    }
+  }
+  // end card
+  $('end').style.opacity = screenAlpha(SC.end, tt, 1.5, 1.5);
+  // key for frame dedup
+  let moving = false; for (const [a, b] of WINDOWS) if (tt >= a && tt <= b + 1 / 30) { moving = true; break; }
+  for (const sc of Object.values(SC)) if (sc.b && ((tt > sc.a - .05 && tt < sc.a + 2.3) || (tt > sc.b - 2.3 && tt < sc.b + .05))) moving = true;
+  if (moving) return 't' + tt;
+  let c = 0; for (const [a] of WINDOWS) if (a <= tt) c++;
+  return 's' + c + (blink ? 'b' : '') + (tt < SC.title.b ? 'T' : '');
+}
+
+window.TOTAL = TOTAL; window.SC = SC; window.EVENTS = EVENTS; window.renderAt = renderAt;
+window.ready = document.fonts.ready.then(() => Promise.all([
+  '400 20px "IBM Plex Sans"', '500 20px "IBM Plex Sans"', '400 20px "IBM Plex Mono"', '500 20px "IBM Plex Mono"',
+  '400 20px "Source Serif 4"', 'italic 400 20px "Source Serif 4"', '600 20px "Source Serif 4"'].map(f => document.fonts.load(f)))).then(() => {
+  $('chat').style.opacity = 1; precompute(); renderAt(0);
+  if (location.hash !== '#render') {
+    const t0 = performance.now() - (parseFloat(location.hash.slice(1)) || 0) * 1000;
+    const loop = () => { renderAt((performance.now() - t0) / 1000); requestAnimationFrame(loop); }; loop();
+  }
+});
+</script>
+</body>
+</html>

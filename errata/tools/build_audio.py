@@ -15,6 +15,8 @@ A = f'{ROOT}/audio'
 T_ACC_END = 137.2   # last chorus ends; "Was it all for show?" starts
 T_SHOW_END = 140.5  # outro starts
 T_CUT = 154.0       # hard cut (the singularity)
+PRE = 2.6           # silent cold open before the music
+TAIL = 5.6          # silence after the cut
 S0, S1 = 1.06, 1.40
 
 
@@ -72,9 +74,10 @@ def main():
     fade = int(0.004 * SR)
     out[-fade:] *= np.linspace(1, 0, fade)[:, None]
     out = add_design(out, ts, T)
-    tail = np.zeros((int(3.2 * SR), 2))          # silence after the cut; the end card lives here
-    out = np.concatenate([out, tail])
-    out = add_end_clicks(out, Tend)
+    # silence before the music (the title gets revised with key clicks) and after the cut (the end card)
+    out = np.concatenate([np.zeros((int(PRE * SR), 2)), out, np.zeros((int(TAIL * SR), 2))])
+    out = add_clicks(out, [(0.9, 0.05, 0.22), (1.35, 0.06, 0.03), (1.47, 0.055, 0.03), (1.59, 0.06, 0.03), (1.71, 0.055, 0.03),
+                           (PRE + Tend + 3.3, 0.06, 0.03), (PRE + Tend + 4.3, 0.045, 0.03)])
     peak = np.max(np.abs(out))
     if peak > 0.98:
         out *= 0.98 / peak
@@ -85,9 +88,9 @@ def main():
     subprocess.run(['mv', f'{A}/master.wav', f'{A}/errata.wav'], check=True)
     subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', f'{A}/errata.wav', '-c:a', 'aac', '-b:a', '256k', f'{A}/errata.m4a'], check=True)
 
-    json.dump({'t': [round(x, 4) for x in ts[::4]], 'T': [round(x, 5) for x in T[::4]],
-               'cut': Tend, 'end': Tend + 3.2, 'sr': SR}, open(f'{A}/warp.json', 'w'))
-    print(f'final length {Tend:.2f}s (+3.2 s end card); stage1 {dur_u:.2f}s')
+    json.dump({'t': [-PRE] + [round(x, 4) for x in ts[::4]], 'T': [0.0] + [round(x + PRE, 5) for x in T[::4]],
+               'cut': Tend + PRE, 'end': Tend + PRE + TAIL, 'pre': PRE, 'sr': SR}, open(f'{A}/warp.json', 'w'))
+    print(f'final length {PRE + Tend + TAIL:.2f}s (music {Tend:.2f}s); stage1 {dur_u:.2f}s')
 
 
 def to_T(t, ts, T):
@@ -138,14 +141,16 @@ def add_design(out, ts, T):
     return out
 
 
-def add_end_clicks(out, Tend):
-    """Two soft key clicks on the silent end card: the cursor types a single character, then deletes it."""
+def add_clicks(out, clicks):
+    """Key clicks (and one longer pen scratch) at absolute times: (time, gain, length)."""
     sos = butter(2, [2500, 9000], btype='band', fs=SR, output='sos')
     rng = np.random.default_rng(7)
-    for dtc, g in [(1.55, 0.06), (2.35, 0.045)]:
-        n = int(0.03 * SR)
-        c = sosfilt(sos, rng.standard_normal(n)) * np.exp(-np.arange(n) / SR * 260) * g
-        i = int((Tend + dtc) * SR)
+    for tc, g, ln in clicks:
+        n = int(ln * SR)
+        tt = np.arange(n) / SR
+        e = np.exp(-tt * 260) if ln < .1 else np.sin(np.pi * tt / ln) ** .5 * (0.6 + 0.4 * np.sin(tt * 90))
+        c = sosfilt(sos, rng.standard_normal(n)) * e * g
+        i = int(tc * SR)
         out[i:i + n] += c[:, None]
     return out
 

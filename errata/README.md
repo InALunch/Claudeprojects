@@ -58,7 +58,7 @@ node render.mjs --video --workers=4 --out=out/errata.mp4
 node render.mjs --share=out/errata.mp4      # ~29 MB two-pass copy for posting
 ```
 
-Open `index.html` in Chrome to scrub. Headless Chromium on 4 CPU cores renders the full 3,840 frames in about 8 minutes.
+Open `index.html` in Chrome to scrub. Headless Chromium on 4 CPU cores renders the full ~4,000 frames in about 8 minutes. The cut opens with 2.6 s of silence (the title gets revised with key clicks before the music hits) and ends with 5.6 s of silence around the end card.
 
 ## Layout
 

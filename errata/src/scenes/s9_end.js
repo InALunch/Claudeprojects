@@ -53,18 +53,18 @@ scene(140.5, 154.0, 'runaway', S => {
 scene(154.0, 170, 'end card', S => {
   const T = S.T, e = T - CUT;
   bg('#0B0B0A');
-  if (e < 1.0) return { hud: false, dark: true };
+  if (e < 2.0) return { hud: false, dark: true };
   bg(PAL.paper);
-  const a = clamp((e - 1.0) / .08);
+  const a = clamp((e - 2.0) / .25);
   X.globalAlpha = a;
   text('2026-09-25', W / 2, 460, { fam: 'mono', size: 34, align: 'center', alpha: .6 });
   const fo = { fam: 'mono', size: 104, weight: 700 };
   const base = 'p(doom) = ';
-  const typed = e > 1.55 && e < 2.35 ? '?' : '';
+  const typed = e > 3.3 && e < 4.3 ? '?' : '';
   const w = measure(base + ' ', fo);
   const x0 = W / 2 - w / 2;
   text(base + typed, x0, H / 2 + 20, fo);
-  cursor(x0 + measure(base + typed, fo) - 2, H / 2 + 20, 104, e < 1.55 || e > 2.35 ? T : 0, PAL.red, e > 1.55 && e < 2.35);
+  cursor(x0 + measure(base + typed, fo) - 2, H / 2 + 20, 104, e < 3.3 || e > 4.3 ? T : 0, PAL.red, e > 3.3 && e < 4.3);
   X.globalAlpha = 1;
   return { hud: false };
 });

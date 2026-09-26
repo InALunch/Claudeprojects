@@ -262,7 +262,7 @@ function finishPaper(T, dark) {
 const DAY0 = Date.UTC(2024, 5, 1);
 const TODAY_DAYS = (Date.UTC(2026, 8, 25) - DAY0) / 864e5;
 function daysAt(T) {
-  const t = toOrig(T);
+  const t = Math.max(0, toOrig(T));
   const f = x => 350 * (Math.exp(x / 48.5) - 1), tc = 48.5 * Math.log(1 + TODAY_DAYS / 350);
   if (t < tc) return f(t);
   if (t < tc + .45) return TODAY_DAYS + .5;            // the calendar hesitates on today
@@ -302,7 +302,7 @@ function hud(T, dark, redbg) {
   else if (past) text('(the future)', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', alpha: .8 });
   // bottom: tempo and p(doom)
   const bpm = bpmAt(T);
-  text(`BPM ${bpm.toFixed(1)}`, M, bot, { fam: 'mono', size: s, color: col, weight: 700 });
+  text(toOrig(T) < 0 ? 'BPM \u2014' : `BPM ${bpm.toFixed(1)}`, M, bot, { fam: 'mono', size: s, color: col, weight: 700 });
   const pd = pdoomAt(T);
   text(`p(doom) ${pd.toFixed(pd > .99 ? 6 : 2)}`, W - M, bot, { fam: 'mono', size: s, color: pd > .8 ? RED : col, align: 'right', weight: 700 });
   // hairline progress rule along the bottom

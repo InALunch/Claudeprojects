@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>errata</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#222}canvas{display:block;width:540px;height:675px}#bar{color:#ccc;font:13px monospace;padding:6px}input{width:540px}</style>
+</head><body>
+<canvas id="c" width="1080" height="1350"></canvas>
+<div id="bar"><input id="scrub" type="range" min="0" max="128" step="0.0333" value="0"><span id="tt"></span></div>
+<script src="src/data.js"></script>
+<script src="src/engine.js"></script>
+<script src="src/scenes/s0_open.js"></script>
+<script src="src/scenes/s1_verse1.js"></script>
+<script src="src/scenes/s2_chorus1.js"></script>
+<script src="src/scenes/s3_verse2.js"></script>
+<script src="src/scenes/s4_chorus2.js"></script>
+<script src="src/scenes/s5_verse3.js"></script>
+<script src="src/scenes/s6_chorus3.js"></script>
+<script src="src/scenes/s7_verse4.js"></script>
+<script src="src/scenes/s8_chorus4.js"></script>
+<script src="src/scenes/s9_end.js"></script>
+<script>
+SCENES.sort((a, b) => a.T0 - b.T0);
+window.FONTS_READY = Promise.all([
+  '400 40px "Instrument Serif"', 'italic 400 40px "Instrument Serif"', '400 40px "Inter Tight"', '600 40px "Inter Tight"',
+  '800 40px "Inter Tight"', '900 40px "Inter Tight"', '400 40px "JetBrains Mono"', '700 40px "JetBrains Mono"', '600 40px "Noto Serif SC"'
+].map(f => document.fonts.load(f))).then(() => document.fonts.ready);
+if (!navigator.webdriver) {
+  const sc = document.getElementById('scrub'), tt = document.getElementById('tt');
+  const go = () => { const n = render(+sc.value); tt.textContent = `${(+sc.value).toFixed(2)}s  orig ${toOrig(+sc.value).toFixed(2)}  ${n}`; };
+  sc.oninput = go; FONTS_READY.then(go);
+}
+</script>
+</body></html>

@@ -1,0 +1,4 @@
+node_modules/
+errata/out/
+errata/audio/*.wav
+errata/audio/timemap.txt

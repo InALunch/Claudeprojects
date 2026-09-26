@@ -4,7 +4,7 @@
 <body><canvas id="c" width="1280" height="720"></canvas>
 <script>
 // YouTube thumbnails: ?v=paper | dark
-const C = document.getElementById('c'), X = C.getContext('2d'), W = 1280, H = 720;
+const C = document.getElementById('c'), X = C.getContext('2d'); let W = 1280, H = 720;
 const P = { paper: '#ECE8DF', ink: '#141312', red: '#E0341F' };
 const F = (w, s, fam, it) => `${it ? 'italic ' : ''}${w} ${s}px ${fam}`;
 function rng(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -12,7 +12,7 @@ function grain(dark) {
   const im = X.getImageData(0, 0, W, H), r = rng(7);
   for (let i = 0; i < im.data.length; i += 4) { const n = (r() - .5) * (dark ? 14 : 18); im.data[i] += n; im.data[i + 1] += n; im.data[i + 2] += n; }
   X.putImageData(im, 0, 0);
-  const g = X.createRadialGradient(W / 2, H / 2, H * .45, W / 2, H / 2, W * .75);
+  const R = Math.max(W, H); const g = X.createRadialGradient(W / 2, H / 2, R * .3, W / 2, H / 2, R * .62);
   g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, dark ? 'rgba(0,0,0,.4)' : 'rgba(60,40,20,.16)'); X.fillStyle = g; X.fillRect(0, 0, W, H);
 }
 function fit(str, w, font) { X.font = font(100); return 100 * w / X.measureText(str).width; }
@@ -47,6 +47,39 @@ function dark() {
   X.textAlign = 'left';
   grain(true);
 }
-window.draw = v => { (v === 'dark' ? dark : paper)(); return C.toDataURL('image/jpeg', .93); };
+// Shorts (1080x1920): everything inside the upper-centre safe zone; the bottom ~25% and the right edge
+// carry YouTube's title, channel and action buttons.
+function paperV() {
+  X.fillStyle = P.paper; X.fillRect(0, 0, W, H);
+  const M = 70;
+  X.fillStyle = P.ink; X.font = F(400, 160, '"Instrument Serif"', true);
+  X.fillText("I'm upping", M, 400); X.fillText('my', M, 550);
+  const s = fit('P(DOOM)', 880, z => F(900, z, '"Inter Tight"'));
+  X.font = F(900, s, '"Inter Tight"'); X.fillText('P(DOOM)', M - 6, 575 + s * .84);
+  const y = 575 + s * .84 + 190;
+  X.font = F(400, 120, '"Instrument Serif"'); const w = X.measureText('(2024)').width; X.fillText('(2024)', M, y);
+  pen(M - 6, y - 39, M + w + 6, y - 43, 10);
+  caret(M + w + 36, y, 120);
+  X.fillStyle = P.red; X.font = F(800, 126, '"Inter Tight"'); X.fillText('2026', M + w + 70, y - 2);
+  X.font = F(700, 42, '"JetBrains Mono"'); X.fillText('23:59:59.9999999', M, y + 130);
+  grain(false);
+}
+function darkV() {
+  X.fillStyle = P.ink; X.fillRect(0, 0, W, H);
+  const M = 70;
+  X.fillStyle = P.paper; X.font = F(800, 104, '"Inter Tight"'); X.fillText("I'm upping my", M, 470);
+  const s = fit('P(DOOM)', 880, z => F(900, z, '"Inter Tight"'));
+  X.font = F(900, s, '"Inter Tight"'); X.fillText('P(DOOM)', M - 6, 490 + s * .84);
+  X.fillStyle = P.red; X.font = F(900, 360, '"Inter Tight"'); X.fillText('0.99', M - 12, 1090);
+  X.fillStyle = P.paper; X.font = F(400, 110, '"Instrument Serif"', true); X.fillText('(errata)', M, 1250);
+  X.fillStyle = P.red; X.font = F(700, 38, '"JetBrains Mono"'); X.fillText('2030-06-30 23:59:59.9999999', M, 1330);
+  grain(true);
+}
+window.draw = v => {
+  const vert = v.endsWith('-shorts');
+  W = C.width = vert ? 1080 : 1280; H = C.height = vert ? 1920 : 720;
+  ({ paper, dark, 'paper-shorts': paperV, 'dark-shorts': darkV })[v]();
+  return C.toDataURL('image/jpeg', .93);
+};
 window.READY = Promise.all(['italic 400 40px "Instrument Serif"', '400 40px "Instrument Serif"', '800 40px "Inter Tight"', '900 40px "Inter Tight"', '700 40px "JetBrains Mono"'].map(f => document.fonts.load(f)));
 </script></body></html>

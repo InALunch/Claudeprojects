@@ -296,13 +296,13 @@ function dateStr(T) {
   const dt = new Date(DAY0 + d * 864e5);
   return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())} ${p(dt.getUTCHours())}:${p(dt.getUTCMinutes())}:${p(dt.getUTCSeconds())}`;
 }
-// AI 2027 (race ending) milestones, by date
+// milestones of the race-ending scenario, by date; unnamed, and after 2028 the captions stop
 const MILESTONES = [
   ['2025-06-01', 'stumbling agents'], ['2025-10-01', "the world's most expensive AI"], ['2026-01-01', 'Agent-1: coding automation'],
   ['2026-05-01', 'China wakes up'], ['2026-09-26', 'AI takes some jobs'], ['2027-01-01', 'Agent-2 never finishes learning'],
   ['2027-02-01', 'China steals Agent-2'], ['2027-03-01', 'Agent-3: superhuman coder'], ['2027-06-01', 'self-improving AI'],
   ['2027-09-01', 'Agent-4: superhuman AI researcher'], ['2027-10-01', 'the committee votes to race'], ['2027-11-01', 'Agent-5'],
-  ['2028-06-01', 'the robot economy'], ['2029-01-01', 'the deal: Consensus-1'], ['2030-01-01', 'race ending: mid-2030'],
+  ['2028-06-01', 'the robot economy'], ['2029-01-01', ''],
 ].map(([d, s]) => [(Date.parse(d + 'T00:00:00Z') - DAY0) / 864e5, s]);
 function milestone(d) { let m = MILESTONES[0][1]; for (const [k, s] of MILESTONES) if (d >= k) m = s; return m; }
 // p(doom) as the song pumps it
@@ -324,7 +324,7 @@ function hud(T, dark, redbg) {
   const past = d >= TODAY_DAYS;
   text(dateStr(T), W - M, top, { fam: 'mono', size: s, color: past ? RED : col, align: 'right', weight: 700 });
   if (Math.abs(d - TODAY_DAYS - .5) < 1e-6) text('\u2190 today', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', weight: 700 });
-  else text('AI 2027 \u00b7 ' + milestone(d), W - M, top + 32, { fam: 'mono', size: s * .88, color: past ? RED : col, align: 'right', alpha: .85 });
+  else if (milestone(d)) text(milestone(d), W - M, top + 32, { fam: 'mono', size: s * .88, color: past ? RED : col, align: 'right', alpha: .85 });
   // bottom: tempo and p(doom)
   const bpm = bpmAt(T);
   text(toOrig(T) < 0 ? 'BPM \u2014' : `BPM ${bpm.toFixed(1)}`, M, bot, { fam: 'mono', size: s, color: col, weight: 700 });

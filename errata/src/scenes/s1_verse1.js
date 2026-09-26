@@ -136,9 +136,6 @@ scene(9.0, 13.0, 'loss', S => {
     text('drop', 0, 0, { fam: 'serif', italic: true, size: 150, color: PAL.red }, (g, i) => ({ a: clamp(fall * 4 - i) , dy: 0 }));
     X.restore();
   }
-  // annotation at the cliff
-  const [cx, cy] = P(ud + .035);
-  note(cx + 16, cy + 240, x1 - 400, y1 - 110, 'nobody scheduled it', clamp((T - tw[idxDrop] - .6) / .9), { size: 22 });
 });
 
 // L5: now I'm your servant and you're my boss  (the org chart inverts)

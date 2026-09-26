@@ -42,7 +42,7 @@ function pdoomHook(S, t0, a, b, o = {}) {
   if (st.since < 0) {
     X.save(); X.strokeStyle = DARK_GHOST; X.lineWidth = 3; setFont({ fam: 'sans', weight: 900, size: s }); X.strokeText('P(DOOM)', M, yP); X.restore();
   } else {
-    const sc = 1 + .18 * Math.exp(-st.since * 10);
+    const sc = 1 + .12 * Math.exp(-st.since * 10);
     X.save(); X.translate(W / 2, yP - s * .35); X.scale(sc, sc); X.translate(-W / 2, -(yP - s * .35));
     text('P(DOOM)', M, yP, { fam: 'sans', weight: 900, size: s, color: fg });
     X.restore();
@@ -59,7 +59,16 @@ function pdoomHook(S, t0, a, b, o = {}) {
   X.restore();
 }
 
-scene(23.0, 24.5, 'hook 1', S => { bg(PAL.ink); pdoomHook(S, 23.0, .08, .15); return { dark: true }; });
+scene(23.0, 24.5, 'hook 1', S => {
+  const T = S.T;
+  bg(PAL.ink);
+  pdoomHook(S, 23.0, .08, .15);
+  const d = daysAt(T), past = d >= TODAY_DAYS;
+  const a = clamp((T - S.T0) / .15);
+  text(dateStr(T), M, 290, { fam: 'mono', size: 54, weight: 700, color: PAL.red, alpha: a });
+  text(Math.abs(d - TODAY_DAYS - .5) < 1e-6 ? '← today' : past ? '← that was today' : '← approaching today', M, 350, { fam: 'mono', size: 30, color: PAL.paper, alpha: a });
+  return { dark: true };
+});
 
 // 'cause the future goes FOOM
 scene(24.5, 26.5, 'foom', S => {
@@ -157,7 +166,7 @@ scene(29.5, 33.5, 'shoggoth', S => {
   const R = rng(33);
   const cx = W / 2, cy = 700;
   const eyes = [];
-  for (let i = 0; i < 95; i++) { const a = R() * Math.PI * 2, r = Math.sqrt(R()) * 520; eyes.push([cx + Math.cos(a) * r * 1.05, cy + Math.sin(a) * r * 1.15, 14 + R() * 38, R()]); }
+  for (let i = 0; i < 110; i++) { const a = R() * Math.PI * 2, r = Math.sqrt(R()) * 520; const ey = cy + Math.sin(a) * r * 1.15; if (ey < 290) continue; eyes.push([cx + Math.cos(a) * r * 1.05, ey, 14 + R() * 38, R()]); }
   const open = clamp((T - tL) / .4);
   X.save(); cam(1 + .12 * ease.io3(inv(tL, S.T1, T)), 0, cx, cy);
   for (const [x, y, r, ph] of eyes) {
@@ -189,7 +198,7 @@ scene(29.5, 33.5, 'shoggoth', S => {
   X.restore();
   const gb = X.createLinearGradient(0, 1020, 0, 1300); gb.addColorStop(0, 'rgba(20,19,18,0)'); gb.addColorStop(.35, PAL.ink); gb.addColorStop(1, PAL.ink);
   X.fillStyle = gb; X.fillRect(0, 1020, W, 330);
-  predicted(l, T, { fam: 'sans', weight: 800, size: 84, x: W / 2, y: 1170, align: 'center', width: W - 2 * M, color: PAL.paper, ghost: DARK_GHOST });
+  predicted(l, T, { fam: 'sans', weight: 800, size: 84, x: W / 2, y: 1115, align: 'center', width: W - 2 * M, color: PAL.paper, ghost: DARK_GHOST });
   return { dark: true };
 });
 

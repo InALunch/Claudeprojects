@@ -94,7 +94,7 @@ scene(85.0, 89.4, 'cdr', S => {
   const tC = l.words[l.words.length - 1].T;
   const a = clamp((T - tC) / .15);
   text('0', W - M, 1230, { fam: 'sans', weight: 900, size: 260, color: PAL.red, align: 'right', alpha: a });
-  text('reviews completed', W - M - 170, 1230, { fam: 'mono', size: 24, color: PAL.red, align: 'right', alpha: a });
+  text('reviews completed', W - M, 1000, { fam: 'mono', size: 28, color: PAL.red, align: 'right', alpha: a });
 });
 
 // Gato, please don't let me go  (the words hang by threads; the threads go)

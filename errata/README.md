@@ -10,9 +10,9 @@ A song from 2024 about AI moving fast is already out of date by the time anyone 
 
 - **Redlines.** Lines get struck through and corrected in red as they're sung. *sparks* becomes **wildfire**. *ChatGPT* is struck and rewritten on the beat to Gemini, Grok, DeepSeek, and finally **Claude** `(noted.)`. *obey* gets a **dis** inserted. *Hundred thousand* becomes 1,000,000, then 10,000,000, then **5 GW**. The 1e30 FLOP/s ETA ticks from 2040 down to 2028 and then to "soon".
 - **The model is typing ahead.** Every lyric first appears as grey ghost text, the next tokens being predicted, and each word inks in as it's sung. The prediction lead grows through the song. Late in the song the predictions start being wrong in unsettling ways. "Now there's *no one* left to go" becomes *nowhere*. "We'll never *tell*" becomes *know*. "Was it all for *us? nothing? you?*" becomes *show?*
-- **The song accelerates.** The tempo curve is exponential, from 137 to 181 BPM, and the audio creeps about half a semitone sharp as it goes. The HUD shows the live BPM, a p(doom) readout pumped on every chorus, and a calendar. The calendar starts in June 2024, hesitates for a moment on **2026-09-25 ← today**, and keeps going into the future, turning red.
+- **The song accelerates, but the calendar slows down.** The tempo curve is exponential, from 137 to 181 BPM, and the audio creeps about half a semitone sharp as it goes. The HUD shows the live BPM and a p(doom) readout pumped on every chorus. It also shows a calendar that follows [AI 2027](https://ai-2027.com)'s race ending, captioned with the scenario's milestones. The calendar starts in mid-2025 ("stumbling agents") and can never pass mid-2030. Its days-per-second rate decays while the music speeds up, so more and more song happens per day. It hesitates on **← today** (2026-09-25) at the first chorus hit. Verse 2, "the singularity's begun", lands in 2027: Agent-3, then Agent-4.
 - **The floor drops out.** On "Was it all for show?" the tempo falls from 181 to 124 BPM, the pitch sags, heartbeats come in, and the calendar stops. The camera pulls back: the page is "page 1 of ∞".
-- **The singularity.** The outro runs away. The audio time-stretches and speeds up like tape, rising about two octaves, while the video re-cuts every earlier page at an accelerating rate until it changes every frame. The date overflows, p(doom) reads 0.999999999, then a hard cut to silence. The end card is `p(doom) = ▌`. The cursor types a `?`, deletes it, and keeps blinking.
+- **The singularity.** The outro runs away. The audio time-stretches and speeds up like tape, rising about two octaves, while the video re-cuts every earlier page at an accelerating rate until it changes every frame. The calendar freezes field by field (year, month, day, hour, minute) while only decimals are added to the last second (`2030-06-30 23:59:59.9999999`), p(doom) reads 0.999999999, then a hard cut to silence. The end card is `p(doom) = ▌`. The cursor types a `?`, deletes it, and keeps blinking.
 - **Unease, gradually.** From verse 3 on, a second impression of each frame drifts out of register, like a misaligned print run. It grows until the last chorus.
 
 The visual system is bone paper, ink and one red. Verses are on paper in Instrument Serif. Choruses are dark, in Inter Tight Black, with the giant P(DOOM) odometer as the recurring hook: 0.08 → 0.15 → 0.34 → 0.61 → 0.86 → 0.99. There's a single blue moment for *Orthogonality thesis blues* and a red alarm for the last chorus. Margin notes and the HUD are set in JetBrains Mono.
@@ -56,6 +56,9 @@ node render.mjs --sheet=0:30:0.5            # contact sheet
 node render.mjs --still=12.3,45.1           # full-res stills
 node render.mjs --video --workers=4 --out=out/errata.mp4
 node render.mjs --share=out/errata.mp4      # ~29 MB two-pass copy for posting
+
+node tools/audit.mjs                        # every 0.1 s: list text that leaves the frame
+node tools/stills.mjs 12.3,45.1 out/x.jpg   # half-size stills sheet (add 'top' for HUD strips)
 ```
 
 Open `index.html` in Chrome to scrub. Headless Chromium on 4 CPU cores renders the full ~4,000 frames in about 8 minutes. The cut opens with 2.6 s of silence (the title gets revised with key clicks before the music hits) and ends with 5.6 s of silence around the end card.

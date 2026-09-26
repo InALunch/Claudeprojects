@@ -4,10 +4,6 @@ scene(59.0, 60.5, 'hook 2', S => {
   const T = S.T;
   bg(PAL.ink);
   pdoomHook(S, 59.0, .15, .34);
-  const d = daysAt(T), past = d >= TODAY_DAYS;
-  const a = clamp((T - S.T0) / .15);
-  text(dateStr(T), M, 300, { fam: 'mono', size: 54, weight: 700, color: PAL.red, alpha: a });
-  text(Math.abs(d - TODAY_DAYS - .5) < 1e-6 ? '← today' : past ? '← that was today' : '← approaching today', M + measure(dateStr(T), { fam: 'mono', size: 54, weight: 700 }) + 24, 300, { fam: 'mono', size: 30, color: PAL.paper, alpha: a });
   return { dark: true };
 });
 
@@ -64,7 +60,7 @@ scene(63.0, 64.5, 'nvda', S => {
   for (let i = 0; i <= n; i++) i ? X.lineTo(...pts[i]) : X.moveTo(...pts[i]);
   X.stroke();
   const pct = Math.round(Math.pow(10, 1 + p * 4.5));
-  text(`▲ +${pct.toLocaleString('en-US')}%`, M, 1190, { fam: 'mono', size: 44, weight: 700, color: PAL.red });
+  text(`▲ +${pct.toLocaleString('en-US')}%`, W - M, 760, { fam: 'mono', size: 44, weight: 700, color: PAL.red, align: 'right' });
   return { dark: true };
 });
 
@@ -75,8 +71,8 @@ scene(64.5, 66.0, 'omega', S => {
   const cx = W / 2, cy = 700;
   const words = ['compute', 'tokens', 'data', 'capex', 'GPUs', 'evals', 'agents', 'energy', 'math', 'code', 'science', 'you'];
   const R = rng(64);
-  for (let i = 0; i < 34; i++) {
-    const a0 = R() * Math.PI * 2, r0 = 330 + R() * 320, sp = .7 + R() * .8;
+  for (let i = 0; i < 24; i++) {
+    const a0 = R() * Math.PI * 2, r0 = 300 + R() * 260, sp = .7 + R() * .8;
     const q = ease.inExpo(clamp(S.u * sp * 1.1));
     const r = r0 * (1 - q), a = a0 + q * 5;
     const w = words[i % words.length];

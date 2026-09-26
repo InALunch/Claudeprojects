@@ -86,6 +86,13 @@ function fit(str, width, o, max = 1e9) {
 function text(str, x, y, o = {}, per = null) {
   const lay = layout(str, o);
   const ax = o.align === 'center' ? lay.width / 2 : o.align === 'right' ? lay.width : 0;
+  if (window.AUDIT && str.trim() && (o.alpha == null || o.alpha > .05)) {
+    const m = X.getTransform(), sz = o.size || 40;
+    const pts = [[x - ax, y - sz * .75], [x - ax + lay.width, y - sz * .75], [x - ax, y + sz * .22], [x - ax + lay.width, y + sz * .22]].map(([px, py]) => [m.a * px + m.c * py + m.e, m.b * px + m.d * py + m.f]);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const over = Math.max(0, -Math.min(...xs), Math.max(...xs) - W, -Math.min(...ys), Math.max(...ys) - H);
+    if (over > 2) window.AUDIT.push({ str: str.slice(0, 40), over: Math.round(over), size: Math.round(sz) });
+  }
   X.save();
   X.fillStyle = o.color || PAL.ink;
   X.globalAlpha *= o.alpha == null ? 1 : o.alpha;
@@ -259,27 +266,45 @@ function finishPaper(T, dark) {
 
 // ───────────────────────── HUD ─────────────────────────
 // the song's calendar: starts in 2024 (when the song was written), passes today mid-song, then runs away
-const DAY0 = Date.UTC(2024, 5, 1);
+// The calendar follows AI 2027's race ending: it starts in mid-2025 and can never pass mid-2030.
+// Physical time slows as the song speeds up (days per second decay), and in the runaway it freezes
+// field by field (years, months, days, hours, minutes) while ever more decimals of the last second tick.
+const DAY0 = Date.UTC(2025, 5, 1);
 const TODAY_DAYS = (Date.UTC(2026, 8, 25) - DAY0) / 864e5;
+const END_DAYS = (Date.UTC(2030, 6, 1) - DAY0) / 864e5;
+const CAL = { A: 2400, tau: 104 };
 function daysAt(T) {
   const t = Math.max(0, toOrig(T));
-  const f = x => 350 * (Math.exp(x / 48.5) - 1), tc = 48.5 * Math.log(1 + TODAY_DAYS / 350);
+  const f = x => CAL.A * (1 - Math.exp(-x / CAL.tau)), tc = -CAL.tau * Math.log(1 - TODAY_DAYS / CAL.A);
   if (t < tc) return f(t);
   if (t < tc + .45) return TODAY_DAYS + .5;            // the calendar hesitates on today
   if (t < 137.2) return f(t - .45);
   const frozen = f(137.2 - .45);
   if (t < 140.5) return frozen;                          // the calendar stops for "was it all for show?"
-  const x = (t - 140.5) / 13.5;
-  return frozen + Math.pow(10, 1 + x * 8.5);            // runaway
+  const x = clamp((t - 140.5) / 13.5);
+  return END_DAYS - (END_DAYS - frozen) * Math.pow(10, -14 * Math.pow(x, 1.3));
 }
 function dateStr(T) {
   const d = daysAt(T);
-  if (d > 3e6) return '████-██-██';
-  const ms = DAY0 + d * 864e5; const dt = new Date(ms);
   const p = n => String(n).padStart(2, '0');
-  let y = dt.getUTCFullYear();
-  return `${y}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())} ${p(dt.getUTCHours())}:${p(dt.getUTCMinutes())}`;
+  const gap = (END_DAYS - d) * 86400;
+  if (gap < 1) {
+    const n = Math.min(9, Math.max(1, Math.ceil(-Math.log10(Math.max(gap, 1e-12))) + 1));
+    const frac = String(Math.floor((1 - gap) * Math.pow(10, n))).padStart(n, '0').slice(0, n);
+    return `2030-06-30 23:59:59.${frac}`;
+  }
+  const dt = new Date(DAY0 + d * 864e5);
+  return `${dt.getUTCFullYear()}-${p(dt.getUTCMonth() + 1)}-${p(dt.getUTCDate())} ${p(dt.getUTCHours())}:${p(dt.getUTCMinutes())}:${p(dt.getUTCSeconds())}`;
 }
+// AI 2027 (race ending) milestones, by date
+const MILESTONES = [
+  ['2025-06-01', 'stumbling agents'], ['2025-10-01', "the world's most expensive AI"], ['2026-01-01', 'Agent-1: coding automation'],
+  ['2026-05-01', 'China wakes up'], ['2026-09-26', 'AI takes some jobs'], ['2027-01-01', 'Agent-2 never finishes learning'],
+  ['2027-02-01', 'China steals Agent-2'], ['2027-03-01', 'Agent-3: superhuman coder'], ['2027-06-01', 'self-improving AI'],
+  ['2027-09-01', 'Agent-4: superhuman AI researcher'], ['2027-10-01', 'the committee votes to race'], ['2027-11-01', 'Agent-5'],
+  ['2028-06-01', 'the robot economy'], ['2029-01-01', 'the deal: Consensus-1'], ['2030-01-01', 'race ending: mid-2030'],
+].map(([d, s]) => [(Date.parse(d + 'T00:00:00Z') - DAY0) / 864e5, s]);
+function milestone(d) { let m = MILESTONES[0][1]; for (const [k, s] of MILESTONES) if (d >= k) m = s; return m; }
 // p(doom) as the song pumps it
 const PDOOM = [[0, .08], [23.71, .08], [24.7, .15], [59.71, .15], [60.7, .34], [96.11, .34], [97.7, .61], [124.21, .61], [126.2, .86], [135.4, .99], [140.5, .99], [154, .999999]];
 function pdoomAt(T) { const t = toOrig(T); for (let i = 1; i < PDOOM.length; i++) if (t < PDOOM[i][0]) { const [a, va] = PDOOM[i - 1], [b, vb] = PDOOM[i]; return lerp(va, vb, ease.io3(inv(a, b, t))); } return .999999; }
@@ -299,7 +324,7 @@ function hud(T, dark, redbg) {
   const past = d >= TODAY_DAYS;
   text(dateStr(T), W - M, top, { fam: 'mono', size: s, color: past ? RED : col, align: 'right', weight: 700 });
   if (Math.abs(d - TODAY_DAYS - .5) < 1e-6) text('\u2190 today', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', weight: 700 });
-  else if (past) text('(the future)', W - M, top + 32, { fam: 'mono', size: s, color: RED, align: 'right', alpha: .8 });
+  else text('AI 2027 \u00b7 ' + milestone(d), W - M, top + 32, { fam: 'mono', size: s * .88, color: past ? RED : col, align: 'right', alpha: .85 });
   // bottom: tempo and p(doom)
   const bpm = bpmAt(T);
   text(toOrig(T) < 0 ? 'BPM \u2014' : `BPM ${bpm.toFixed(1)}`, M, bot, { fam: 'mono', size: s, color: col, weight: 700 });

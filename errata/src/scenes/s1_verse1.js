@@ -48,7 +48,7 @@ scene(1.5, 6.0, 'sparks', S => {
     caret(sp.x + sp.ww * .5, sp.y - 150, 70, pe);
     text('wildfire', sp.x + 10, sp.y - 150, { fam: 'sans', weight: 800, size: 70, color: PAL.red, alpha: pe }, (g, i) => ({ a: i < Math.ceil(8 * clamp((T - tE - .1) / .35)) ? 1 : 0 }));
   }
-  note(sp.x + sp.ww + 10, sp.y - 190, sp.x + sp.ww + 40, sp.y - 250, '"sparks" was 2023', clamp((T - tE - .3) / .8), { size: 21 });
+  note(sp.x + sp.ww * .8, sp.y - 190, M - 10, sp.y - 290, '"sparks" was 2023. it spread.', clamp((T - tE - .3) / .8), { size: 21 });
   X.restore();
 });
 
@@ -138,7 +138,7 @@ scene(9.0, 13.0, 'loss', S => {
   }
   // annotation at the cliff
   const [cx, cy] = P(ud + .035);
-  note(cx + 12, cy, cx + 120, cy - 30, 'grokking? no. just scale.', clamp((T - tw[idxDrop] - .6) / .9), { size: 22 });
+  note(cx + 16, cy + 240, x1 - 400, y1 - 110, 'nobody scheduled it', clamp((T - tw[idxDrop] - .6) / .9), { size: 22 });
 });
 
 // L5: now I'm your servant and you're my boss  (the org chart inverts)
@@ -169,7 +169,7 @@ scene(13.0, 17.9, 'boss', S => {
   // "me" starts on top and ends below; "you" rises
   box(yx, yy, 'you', sw > .5 ? 'BOSS' : 'REPORTS TO: ME', sw > .5, sw > .5);
   box(mx, my, 'me', sw > .5 ? 'SERVANT' : 'BOSS', false, false);
-  note(W / 2 + bw / 2 - 20, top + bh / 2 + 10, W / 2 + bw / 2 - 40, top + bh / 2 + 70, 'reporting line updated', clamp((T - tSw - .5) / .8), { size: 20 });
+  note(W / 2 + bw / 2 - 20, top + bh / 2 + 10, W / 2 + 30, top + bh / 2 + 92, 'reporting line updated', clamp((T - tSw - .5) / .8), { size: 20 });
   predicted(l, T, { x: W / 2, y: 1060, size: 100, align: 'center', width: W - 2 * M, lh: .98 });
 });
 

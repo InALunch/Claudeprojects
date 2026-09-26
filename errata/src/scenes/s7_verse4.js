@@ -4,7 +4,7 @@
 scene(109.4, 113.5, 'all the way', S => {
   const T = S.T, l = L(109.4);
   bg(PAL.paper);
-  const fo = { fam: 'sans', weight: 900, size: 150 };
+  const fo = { fam: 'sans', weight: 900, size: 120 };
   const scroll = S.lt * 1.3;          // rows per second, descending forever
   let y = 560, s = 1;
   const f = scroll % 1;
@@ -17,7 +17,7 @@ scene(109.4, 113.5, 'all the way', S => {
     X.save(); X.translate(W / 2, y); X.scale(s, s);
     text('TRANSFORMERS', 0, 0, { ...fo, align: 'center', color: idx % 4 === 3 ? PAL.red : PAL.ink, alpha: a });
     X.restore();
-    y += 150 * s * .9; s *= .8;
+    y += 124 * s * .9; s *= .8;
   }
   X.restore();
   X.fillStyle = PAL.paper; X.fillRect(0, 150, W, 280);
@@ -28,12 +28,12 @@ scene(109.4, 113.5, 'all the way', S => {
 scene(113.5, 115.5, 'disobey', S => {
   const T = S.T, l = L(113.5);
   bg(PAL.paper);
-  const fo = { fam: 'serif', size: 150 };
+  const fo = { fam: 'serif', size: Math.min(130, fit('Till you learned to', W - 2 * M - 20, { fam: 'serif' })) };
   const head = { ...l, words: l.words.slice(0, 4) };
-  predicted(head, T, { ...fo, x: M, y: 520, width: W - 2 * M, lh: .95 });
+  predicted(head, T, { ...fo, x: M, y: 400, width: W - 2 * M, lh: .95 });
   const w = l.words[4];
   const st = wordState(l, 4, T);
-  const y = 520 + 2 * 150 * .95 + 40;
+  const y = 860;
   const dx = M + 150;
   if (st.typed > 0) text('obey', dx, y, { fam: 'serif', size: 230, color: st.inked > 0 ? PAL.ink : PAL.ghost });
   const p = clamp((T - w.T + .05) / .2);
@@ -43,7 +43,7 @@ scene(113.5, 115.5, 'disobey', S => {
     text('dis', 0, 0, { fam: 'sans', weight: 900, size: 150, color: PAL.red, alpha: p });
     X.restore();
   }
-  note(dx + 480, y - 80, dx + 520, y - 250, 'suggested edit (auto)', clamp((T - w.T - .5) / .7), { size: 22 });
+  note(dx + 200, y + 50, M - 10, y + 190, 'suggested edit (auto-accepted)', clamp((T - w.T - .5) / .7), { size: 22 });
 });
 
 // Post-Chinchilla, super-dense  (the letters pack until they're solid)
@@ -64,7 +64,7 @@ scene(115.5, 117.0, 'dense', S => {
     text(row, 0, 0, { ...fo, track: tr, align: 'center', color: st.inked > 0 ? PAL.ink : PAL.ghost });
     X.restore();
   });
-  note(W - M - 40, 330, W - M - 380, 250, '2022. it got denser.', clamp((T - l.words[0].T - .2) / .6), { size: 22 });
+  note(W - M - 40, 330, M - 10, 240, 'Chinchilla, 2022: ~20 tokens/param. now: 1000+', clamp((T - l.words[0].T - .2) / .6), { size: 22 });
 });
 
 // Breaking through each safety fence
@@ -102,17 +102,17 @@ scene(119.0, 120.9, 'gpus', S => {
   const T = S.T, l = L(119.0);
   bg(PAL.paper);
   predicted(l, T, { fam: 'serif', size: 100, x: M, y: 250, width: W - 2 * M });
-  const revs = ['100,000', '1,000,000', '10,000,000', '5 GW'];
+  const revs = ['100,000', '1,000,000', '5 GW', '10 GW'];
   const b0 = beat(l.words[0].T).i;
   const k = beat(T).i - b0;
   revs.forEach((r, i) => {
     if (i > k) return;
     const y = 520 + i * 190;
-    const fo = { fam: 'sans', weight: 900, size: 170 };
+    const fo = { fam: 'sans', weight: 900, size: Math.min(170, fit('1,000,000', W - 2 * M, { fam: 'sans', weight: 900 })) };
     const w = measure(r, fo);
     const pop = Math.exp(-(T - (BEATS[b0 + i] || 0)) * 10);
     text(r, M, y + 110, { ...fo, color: i === revs.length - 1 || i === k ? PAL.red : PAL.ink, alpha: i < k ? .5 : 1 }, () => ({ sc: 1 + .1 * pop }));
-    if (i < k) strike(M, M + w, y + 110, 170, clamp((T - BEATS[b0 + i + 1]) / .12), { seed: i + 20, w: 8 });
+    if (i < k) strike(M, M + w, y + 110, fo.size, clamp((T - BEATS[b0 + i + 1]) / .12), { seed: i + 20, w: 8 });
   });
   text('GPU', W - M, 1220, { fam: 'mono', size: 30, align: 'right' });
 });

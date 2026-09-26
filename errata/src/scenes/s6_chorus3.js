@@ -30,10 +30,10 @@ scene(97.5, 99.0, 'paperclips', S => {
     const y = lerp(-100, yT, ease.in3(fall));
     clip(x, y, s, rot + (1 - fall) * 3, i % 23 === 0 ? PAL.red : PAL.paper, 3);
   }
-  X.fillStyle = PAL.ink; X.fillRect(0, 170, W, 280);
+  X.fillStyle = PAL.ink; X.fillRect(0, 150, W, 420);
   predicted(l, T, { fam: 'sans', weight: 800, size: 96, x: M, y: 290, width: W - 2 * M, color: PAL.paper, ghost: DARK_GHOST });
   const c = Math.pow(2, 1 + S.u * 36);
-  text(`${Math.floor(c).toLocaleString('en-US')} clips`, M, 420, { fam: 'mono', size: 34, weight: 700, color: PAL.red });
+  text(`${Math.floor(c).toLocaleString('en-US')} clips`, M, 530, { fam: 'mono', size: 34, weight: 700, color: PAL.red });
   return { dark: true };
 });
 

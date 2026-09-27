@@ -1,0 +1,152 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#111}canvas{display:block}</style></head>
+<body><canvas id="c" width="1280" height="720"></canvas>
+<script>
+// More cover concepts. draw('<name>', 'wide'|'tall') -> jpeg data url.
+// wide = 1280x720 (YouTube), tall = 1080x1920 (Shorts: content kept inside the upper-centre safe zone).
+const C = document.getElementById('c'), X = C.getContext('2d');
+const P = { paper: '#ECE8DF', ink: '#141312', red: '#E0341F', ghost: '#ADA89D' };
+const SERIF = '"Instrument Serif"', SANS = '"Inter Tight"', MONO = '"JetBrains Mono"';
+let W, H, TALL, B; // B = safe content box {x, y, w, h}
+function rng(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const font = (w, s, f, it) => (X.font = `${it ? 'italic ' : ''}${w} ${s}px ${f}`);
+function fitSize(str, width, w, f, it) { font(w, 100, f, it); return 100 * width / X.measureText(str).width; }
+function txt(str, x, y, w, s, f, color, o = {}) { font(w, s, f, o.it); X.fillStyle = color; X.textAlign = o.align || 'left'; X.globalAlpha = o.a == null ? 1 : o.a; X.fillText(str, x, y); X.globalAlpha = 1; X.textAlign = 'left'; return X.measureText(str).width; }
+function pen(x0, y0, x1, y1, w, col = P.red) { X.strokeStyle = col; X.lineWidth = w; X.lineCap = 'round'; X.beginPath(); X.moveTo(x0, y0); X.quadraticCurveTo((x0 + x1) / 2, y0 - w * .6, x1, y1); X.stroke(); }
+function grain(dark) {
+  const im = X.getImageData(0, 0, W, H), r = rng(7);
+  for (let i = 0; i < im.data.length; i += 4) { const n = (r() - .5) * (dark ? 14 : 18); im.data[i] += n; im.data[i + 1] += n; im.data[i + 2] += n; }
+  X.putImageData(im, 0, 0);
+  const R = Math.max(W, H), g = X.createRadialGradient(W / 2, H / 2, R * .3, W / 2, H / 2, R * .62);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, dark ? 'rgba(0,0,0,.4)' : 'rgba(60,40,20,.16)'); X.fillStyle = g; X.fillRect(0, 0, W, H);
+}
+const bg = c => { X.fillStyle = c; X.fillRect(0, 0, W, H); };
+
+const D = {};
+
+// 1. REDACTED: a classified page; the only thing left legible is the title.
+D.redacted = () => {
+  bg(P.paper);
+  const r = rng(3), lh = TALL ? 58 : 40, bh = TALL ? 30 : 20;
+  const s = fitSize('P(DOOM)', B.w, 900, SANS);
+  const titleTop = B.y + B.h * (TALL ? .36 : .30), titleBot = titleTop + s * .95;
+  for (let y = TALL ? 150 : 40; y < (TALL ? H * .74 : H - 20); y += lh) {
+    if (y > titleTop - s * .35 - lh && y < titleBot + 10) continue;
+    const w = B.w * (.45 + r() * .55);
+    X.fillStyle = P.ink; X.fillRect(B.x, y, w, bh);
+  }
+  txt("I'm upping my", B.x, titleTop - s * .08, 400, s * .34, SERIF, P.ink, { it: true });
+  txt('P(DOOM)', B.x - s * .03, titleTop + s * .78, 900, s, SANS, P.ink);
+  // a red stamp over the page
+  X.save(); X.translate(B.x + B.w * (TALL ? .5 : .7), titleBot + (TALL ? 170 : 95)); X.rotate(-.08);
+  const ss = TALL ? 62 : 56; font(900, ss, SANS); const sw = X.measureText('DECLASSIFIED 2026').width;
+  X.strokeStyle = P.red; X.lineWidth = ss * .09; X.strokeRect(-sw / 2 - ss * .3, -ss * .95, sw + ss * .6, ss * 1.3);
+  txt('DECLASSIFIED 2026', 0, 0, 900, ss, SANS, P.red, { align: 'center' });
+  X.restore();
+  grain(false);
+};
+
+// 2. THE CURVE: a straight line on a log chart, until it isn't.
+D.curve = () => {
+  bg(P.paper);
+  const x0 = B.x + (TALL ? 30 : 20), x1 = B.x + B.w, y1 = TALL ? H * .70 : H - 60, y0 = TALL ? 140 : 30;
+  X.strokeStyle = P.ink; X.lineWidth = 3;
+  X.beginPath(); X.moveTo(x0, y0); X.lineTo(x0, y1); X.lineTo(x1, y1); X.stroke();
+  X.globalAlpha = .12; for (let k = 1; k < 8; k++) { const y = y1 - (y1 - y0) * k / 8; X.beginPath(); X.moveTo(x0, y); X.lineTo(x1, y); X.stroke(); } X.globalAlpha = 1;
+  const pts = []; for (let i = 0; i <= 200; i++) { const u = i / 200; const lin = u * .55; const up = u > .72 ? Math.pow((u - .72) / .28, 3) * 3 : 0; pts.push([x0 + (x1 - x0) * u * .86, y1 - (y1 - y0) * (lin * (u < .72 ? 1 : 1) * .6 + up)]); }
+  const r = rng(5); X.fillStyle = P.ink;
+  for (let i = 0; i < 16; i++) { const u = i / 15 * .7, [x, y] = pts[Math.round(u * 200)]; X.beginPath(); X.arc(x, y + (r() - .5) * 26, TALL ? 11 : 8, 0, 7); X.fill(); }
+  X.strokeStyle = P.red; X.lineWidth = TALL ? 12 : 9; X.lineJoin = 'round'; X.beginPath(); pts.forEach(([x, y], i) => i ? X.lineTo(x, y) : X.moveTo(x, y)); X.stroke();
+  const s = fitSize('P(DOOM)', B.w * (TALL ? .92 : .6), 900, SANS);
+  const ty = y0 + (TALL ? 200 : 110);
+  txt("I'm upping my", x0 + 24, ty + s * .3, 400, s * .34, SERIF, P.ink, { it: true });
+  txt('P(DOOM)', x0 + 18, ty + s * 1.1, 900, s, SANS, P.ink);
+  const ns = TALL ? 38 : 26; let ny = y0 + (TALL ? 60 : 44);
+  let x = x0 + 24;
+  for (const [t, dead] of [['doubling every 7 mo', 1], ['4 mo', 1], ['2 mo', 1], ['every', 0]]) {
+    font(700, ns, MONO); if (x + X.measureText(t).width > B.x + B.w) { x = x0 + 24; ny += ns * 1.5; }
+    const w = txt(t, x, ny, 700, ns, MONO, P.red); if (dead) pen(x - 4, ny - ns * .32, x + w + 4, ny - ns * .34, ns * .12); x += w + ns * .8;
+  }
+  grain(false);
+};
+
+// 3. PREDICTED: the model already knows how the title ends.
+D.predicted = () => {
+  bg(P.paper);
+  const s = fitSize('P(DOOM)', B.w, 900, SANS);
+  const top = B.y + B.h * (TALL ? .30 : .26);
+  txt("I'm upping my", B.x, top, 400, s * .42, SERIF, P.ink, { it: true });
+  txt('P(DOOM)', B.x - s * .03, top + s * .95, 900, s, SANS, P.ghost);
+  // cursor after "my", the prediction hangs in grey
+  font(400, s * .42, SERIF, true); const mw = X.measureText("I'm upping my").width;
+  X.fillStyle = P.red; X.fillRect(B.x + mw + s * .04, top - s * .34, s * .035, s * .42);
+  const ns = TALL ? 44 : 30;
+  txt('p = 0.99', B.x + B.w, top + s * 1.28, 700, ns, MONO, P.red, { align: 'right' });
+  txt('press tab to accept', B.x, top + s * 1.28, 400, ns, MONO, P.ink, { a: .55 });
+  grain(false);
+};
+
+// 4. TOKENIZED: the title is being eaten, block by block.
+D.tokenized = () => {
+  bg(P.paper);
+  const s = fitSize('P(DOOM)', B.w, 900, SANS);
+  const top = B.y + B.h * (TALL ? .34 : .30);
+  txt("I'm upping my", B.x, top - s * .1, 400, s * .36, SERIF, P.ink, { it: true });
+  txt('P(DOOM)', B.x - s * .03, top + s * .8, 900, s, SANS, P.ink);
+  const cols = TALL ? 9 : 16, rows = TALL ? 16 : 9, bw = W / cols, bh = H / rows, r = rng(11);
+  for (let c = 0; c < cols; c++) for (let k = 0; k < rows; k++) {
+    const key = (c / (cols - 1)) * .75 + r() * .35;
+    const x = c * bw, y = k * bh;
+    if (key > .78) { X.fillStyle = P.ink; X.fillRect(x - .5, y - .5, bw + 1, bh + 1); }
+    else if (key > .7) { X.strokeStyle = P.red; X.lineWidth = TALL ? 4 : 3; X.strokeRect(x + 5, y + 5, bw - 10, bh - 10); txt(String(1000 + Math.floor(r() * 99000)), x + 12, y + (TALL ? 36 : 26), 700, TALL ? 24 : 16, MONO, P.red); }
+  }
+  grain(false);
+};
+
+// 5. 23:59:59: the clock that never reaches midnight.
+D.clock = () => {
+  bg(P.ink);
+  if (TALL) {
+    const s = fitSize('23:59:59', B.w, 700, MONO), y = B.y + 330;
+    txt("I'M UPPING MY P(DOOM)", B.x, y - s * 1.25, 900, fitSize("I'M UPPING MY P(DOOM)", B.w, 900, SANS), SANS, P.paper);
+    txt('23:59:59', B.x, y, 700, s, MONO, P.red);
+    txt('.9999999', B.x, y + s * .95, 700, s, MONO, P.red);
+    txt('2030-06-30', B.x, y + s * 1.6, 700, s * .3, MONO, P.paper, { a: .6 });
+    txt('(errata)', B.x + B.w, y + s * 1.6, 400, s * .42, SERIF, P.paper, { it: true, align: 'right' });
+    return grain(true);
+  }
+  const t = '23:59:59.9999999';
+  const s = fitSize(t, B.w, 700, MONO);
+  const cy = B.y + B.h * (TALL ? .5 : .56);
+  txt("I'M UPPING MY P(DOOM)", B.x, cy - s * (TALL ? 1.9 : 1.5), 900, s * (TALL ? .62 : .5), SANS, P.paper);
+  txt(t, B.x, cy, 700, s, MONO, P.red);
+  txt('2030-06-30', B.x, cy + s * .9, 700, s * .5, MONO, P.paper, { a: .6 });
+  txt('(errata)', B.x + B.w, cy + s * .9, 400, s * .62, SERIF, P.paper, { it: true, align: 'right' });
+  grain(true);
+};
+
+// 6. RED ALERT: the last chorus.
+D.alert = () => {
+  bg(P.red);
+  const g = X.createConicGradient(1.2, W * .5, -H * .25);
+  g.addColorStop(0, 'rgba(20,19,18,.3)'); g.addColorStop(.1, 'rgba(20,19,18,0)'); g.addColorStop(.5, 'rgba(20,19,18,.3)'); g.addColorStop(.6, 'rgba(20,19,18,0)'); g.addColorStop(1, 'rgba(20,19,18,.3)');
+  X.fillStyle = g; X.fillRect(0, 0, W, H);
+  const s = fitSize('P(DOOM)', B.w, 900, SANS);
+  const top = B.y + B.h * (TALL ? .22 : .14);
+  txt("I'm upping my", B.x, top, 800, s * .3, SANS, P.ink);
+  txt('P(DOOM)', B.x - s * .03, top + s * .9, 900, s, SANS, P.ink);
+  const n = TALL ? s * 1.3 : s * .95;
+  txt('0.99', B.x - n * .04, top + s * .9 + n * .86, 900, n, SANS, P.paper);
+  grain(false);
+};
+
+window.draw = (name, fmt) => {
+  TALL = fmt === 'tall'; W = C.width = TALL ? 1080 : 1280; H = C.height = TALL ? 1920 : 720;
+  B = TALL ? { x: 70, y: 260, w: 880, h: 1150 } : { x: 70, y: 40, w: 1140, h: 640 };
+  D[name]();
+  return C.toDataURL('image/jpeg', .93);
+};
+window.NAMES = Object.keys(D);
+window.READY = Promise.all(['italic 400 40px "Instrument Serif"', '400 40px "Instrument Serif"', '800 40px "Inter Tight"', '900 40px "Inter Tight"', '400 40px "JetBrains Mono"', '700 40px "JetBrains Mono"'].map(f => document.fonts.load(f)));
+</script></body></html>

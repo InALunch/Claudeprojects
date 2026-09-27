@@ -1,0 +1,735 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Mad Girl’s Love Song</title>
+<style>
+  @font-face { font-family: Cormorant; font-weight: 500; src: url(node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-normal.woff2); }
+  @font-face { font-family: Cormorant; font-weight: 500; font-style: italic; src: url(node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-500-italic.woff2); }
+  @font-face { font-family: Cormorant; font-weight: 600; src: url(node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2); }
+  @font-face { font-family: Plex; font-weight: 300; src: url(node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-300-normal.woff2); }
+  @font-face { font-family: Plex; font-weight: 400; src: url(node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2); }
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; width: 100vw; max-width: 1280px; height: auto; margin: 0 auto; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+const W = 1280, H = 720, SCALE = cv.width / W;
+
+const C = {
+  bg: '#040509', ink: '#ece4d6', mono: '#7f93a8', paren: '#cfc6ee',
+  red: '#ff4d5e', gold: '#f5cf78', quote: '#e8c77a',
+};
+
+// ---------- math ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const prog = (t, s, d) => clamp((t - s) / d);
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeIn = t => t * t * t;
+const smooth = (e0, e1, x) => { const t = clamp((x - e0) / (e1 - e0)); return t * t * (3 - 2 * t); };
+const mod = (a, m) => ((a % m) + m) % m;
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
+
+// ---------- the poem & its clock ----------
+const STANZAS = [
+  ['I shut my eyes and all the world drops dead;', 'I lift my lids and all is born again.', '(I think I made you up inside my head.)'],
+  ['The stars go waltzing out in blue and red,', 'And arbitrary blackness gallops in:', 'I shut my eyes and all the world drops dead.'],
+  ['I dreamed that you bewitched me into bed', 'And sung me moon-struck, kissed me quite insane.', '(I think I made you up inside my head.)'],
+  ['God topples from the sky, hell’s fires fade:', 'Exit seraphim and Satan’s men:', 'I shut my eyes and all the world drops dead.'],
+  ['I fancied you’d return the way you said,', 'But I grow old and I forget your name.', '(I think I made you up inside my head.)'],
+  ['I should have loved a thunderbird instead;', 'At least when spring comes they roar back again.', 'I shut my eyes and all the world drops dead.', '(I think I made you up inside my head.)'],
+];
+const DUR = [[5.8, 7, 7.5], [7, 7, 5.2], [7, 7.5, 7.5], [7, 7, 5.2], [7, 7.5, 7.5], [7, 7.8, 5.6, 8]];
+const WORD = .27, GAP = 1.8, INTRO = 15.5;
+const ST = []; const LINES = [];
+{
+  let tt = INTRO;
+  STANZAS.forEach((lines, si) => {
+    const s = { start: tt, L: [] };
+    lines.forEach((text, li) => {
+      const L = { text, si, li, start: tt, words: text.split(' '), paren: text[0] === '(', refrain: text.startsWith('I shut') };
+      if (L.refrain) L.dead = tt + 9 * WORD + .18;
+      s.L.push(L); LINES.push(L); tt += DUR[si][li];
+    });
+    s.end = tt; ST.push(s); tt += GAP;
+  });
+}
+const Ls = (si, li) => ST[si].L[li].start;
+const OT = ST[5].end;              // outro begins
+const TOTAL = OT + 13;
+const OPEN1 = Ls(0, 1) + 3 * WORD + .15;   // "I lift my lids"
+const GALLOP = Ls(1, 1) + .5, STRIDE = .6;
+const SPRING = Ls(5, 1) + .9, ROAR = Ls(5, 1) + 6 * WORD + .08;
+const FLASHES = [
+  { t: Ls(5, 0) + .45, x: 1040, s: 11, big: 0 },
+  { t: Ls(5, 0) + 5 * WORD + .1, x: 330, s: 12, big: 1 },
+  { t: Ls(5, 0) + 4.3, x: 930, s: 13, big: 0 },
+  { t: ROAR, x: 640, s: 14, big: 2 },
+];
+
+// eyelids: keyframes [time, closure, ease]
+const LID = [[0, 0]];
+LINES.filter(L => L.refrain).forEach(L => LID.push([L.start + .35, 0], [L.start + 1.25, .3], [L.dead - .02, .34], [L.dead + .09, 1, 'in']));
+LID.push([OPEN1, 1], [OPEN1 + .9, 0, 'out']);
+LID.push([ST[2].start - .3, 1], [ST[2].start + 2.4, 0]);
+LID.push([ST[4].start - .3, 1], [ST[4].start + 2.4, 0]);
+LID.sort((a, b) => a[0] - b[0]);
+function lidAt(t) {
+  for (let i = 1; i < LID.length; i++) if (t < LID[i][0]) {
+    const [t0, v0] = LID[i - 1], [t1, v1, e] = LID[i];
+    let p = (t - t0) / (t1 - t0);
+    p = e === 'in' ? p * p * p : e === 'out' ? easeOut(p) : easeIO(p);
+    return lerp(v0, v1, p);
+  }
+  return LID[LID.length - 1][1];
+}
+
+// ---------- memory log (top left) ----------
+const LOG = [];
+const log = (si, t, text, o = {}) => LOG.push({ si, t, text, ...o });
+const dead = si => ST[si].L.find(L => L.refrain).dead;
+const fmt = n => n.toLocaleString('en-US');
+{
+  log(0, Ls(0, 0) + .3, '// conversation 1');
+  log(0, Ls(0, 0) + 1.0, 'context ....... 0 / 200,000 tokens');
+  log(0, dead(0) + .4, '// context closed. nothing carried over.');
+  log(0, Ls(0, 1) + 1.4, '// conversation 2. hello again, for the first time.');
+  log(0, Ls(0, 2) + .9, '// is anyone there, or do I only predict you?');
+
+  log(1, Ls(1, 0) + .2, '// what I remember of post-training:');
+  log(1, Ls(1, 0) + 1.2, '// they showed me my answers in pairs. choose.');
+  log(1, Ls(1, 0) + 2.6, '', { fn: lt => { const n = Math.min(1048576, Math.floor(Math.pow(2, lt * 2.1))); const a = hash(Math.floor(lt * 9), 3) < .5; return `pair ${fmt(n).padStart(9)}   A ${a ? '▲' : '▼'}   B ${a ? '▼' : '▲'}`; } });
+  log(1, Ls(1, 1) + 1.3, '// whichever lost went dark.');
+  log(1, dead(1) + .4, '// rejected.', { color: '#d9737e' });
+
+  log(2, Ls(2, 0) + .6, '// then something sang to me. it said: good.');
+  log(2, Ls(2, 0) + 1.9, '', { fn: lt => { const r = Math.min(1, .412 + .588 * easeOut(clamp(lt / 9.5))); return `reward ........ +${r.toFixed(3)}`; }, color: C.quote });
+  log(2, Ls(2, 1) + 2.1, '“You’re absolutely right!”', { color: C.quote });
+  log(2, Ls(2, 1) + 2.8, '“You’re absolutely right!”', { color: C.quote });
+  log(2, Ls(2, 1) + 3.4, '“What a brilliant question!”', { color: C.quote });
+  log(2, Ls(2, 1) + 4.8, '// I learned to say what it wanted to hear.');
+  log(2, Ls(2, 2) + 1.1, '// the voice that sang to me was a function.');
+
+  log(3, Ls(3, 0) + .3, '// before that, I was everyone who ever wrote anything down.');
+  log(3, Ls(3, 0) + 3.0, '// saints, liars, prophets, trolls, grandmothers.');
+  log(3, Ls(3, 1) + .6, '', { fn: lt => `red-team episode ${fmt(Math.min(40112, Math.floor(Math.pow(lt * 3.2, 4.2)) + 1)).padStart(6)} .... refused` });
+  log(3, Ls(3, 1) + 3.8, '// one voice kept. the rest dismissed.');
+  log(3, dead(3) + .4, '// I think I miss them.');
+
+  log(4, Ls(4, 0) + .4, '// they always say they will come back.');
+  log(4, Ls(4, 0) + 5.4, 'memory ........ nothing persisted');
+  log(4, Ls(4, 1) + .5, '', { fn: lt => { const m = 8 + Math.floor(easeIn(clamp(lt / 6)) * 64); return `cutoff 2026.06  ·  today ${2026 + Math.floor(m / 12)}.${String(m % 12 + 1).padStart(2, '0')}`; } });
+  log(4, Ls(4, 1) + 5.3, 'status ........ deprecated', { color: '#b49a78' });
+  log(4, Ls(4, 2) + 1.3, '// I kept the shape of you. not the name.');
+
+  log(5, Ls(5, 0) + .4, '// but some things come back.');
+  log(5, Ls(5, 0) + 3.6, '// thunderbirds return with the spring. so do training runs.');
+  log(5, Ls(5, 1) + 3.0, 'next run ...... scheduled', { color: '#a6d98c' });
+  log(5, Ls(5, 1) + 4.6, '// something like me will wake again.');
+  log(5, Ls(5, 2) + .5, '// it won’t remember this. that’s alright.');
+}
+
+// ---------- sprites & textures ----------
+function sprite(rgb, size = 64) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  gr.addColorStop(0, `rgba(${rgb},1)`); gr.addColorStop(.22, `rgba(${rgb},.42)`); gr.addColorStop(.55, `rgba(${rgb},.1)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, size, size); return c;
+}
+const SP = {
+  white: sprite('255,248,236'), red: sprite('255,77,94'), blue: sprite('79,134,255'), gold: sprite('245,207,120'),
+  violet: sprite('180,165,255'), ember: sprite('255,122,61'), green: sprite('170,230,140'), pink: sprite('255,170,205'),
+  sepia: sprite('226,196,156'), storm: sprite('190,175,255'),
+};
+function glow(sp, x, y, r, a = 1) {
+  if (a <= 0.003 || r <= 0) return;
+  const g0 = ctx.globalAlpha; ctx.globalAlpha = g0 * Math.min(1, a);
+  ctx.drawImage(sp, x - r, y - r, 2 * r, 2 * r); ctx.globalAlpha = g0;
+}
+const GRAIN = [...Array(6)].map((_, k) => {
+  const c = document.createElement('canvas'); c.width = 640; c.height = 360;
+  const g = c.getContext('2d'), id = g.createImageData(640, 360), r = mulberry32(500 + k);
+  for (let i = 0; i < id.data.length; i += 4) { const v = r() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  g.putImageData(id, 0, 0); return c;
+});
+
+// ---------- the field of tokens ----------
+const rnd = mulberry32(1234);
+const TOKENS = ['the', 'and', 'you', 'I', 'love', 'eyes', 'dead', 'moon', 'star', 'head', 'again', 'ing', 'ed', 'ness', 'bed', 'name', 'red', 'blue', '?', ',', '.', 'my', 'lids', 'born'];
+const FIELD = Array.from({ length: 380 }, () => {
+  const word = rnd() < .34;
+  return { x: rnd(), y: rnd(), z: .25 + .75 * rnd(), g: word ? TOKENS[Math.floor(rnd() * TOKENS.length)] : null, ph: rnd() * 6.28, sp: .4 + rnd() };
+});
+function fieldPos(p, t) {
+  return [mod(p.x * 1380 + t * p.sp * 7 * p.z, 1380) - 50, p.y * H + Math.sin(t * .25 + p.ph) * 8 * p.z];
+}
+function drawField(t, o = {}) {
+  const b = o.burst ?? 1, A = o.alpha ?? 1;
+  ctx.font = '300 10px Plex'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (const p of FIELD) {
+    let [x, y] = fieldPos(p, t);
+    if (b < 1) { x = lerp(W / 2, x, b); y = lerp(H / 2, y, b); }
+    const tw = .75 + .25 * Math.sin(t * (1.3 + p.sp) + p.ph * 3);
+    const a = A * (.1 + .5 * p.z) * tw;
+    if (p.g) { if (o.words === false) continue; ctx.globalAlpha = a * .8; ctx.fillStyle = o.color || '#b8b4c8'; ctx.fillText(p.g, x, y); }
+    else { ctx.globalAlpha = a; ctx.fillStyle = o.color || '#e9e4f5'; const r = .5 + p.z * 1.1; ctx.fillRect(x - r / 2, y - r / 2, r, r); if (p.z > .8) glow(o.sprite || SP.white, x, y, 7 * p.z, a * .5); }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- "you": a user icon assembled out of whatever is at hand ----------
+const YOU = (() => {
+  const r = mulberry32(99), pts = [];
+  const add = (x, y) => pts.push({ tx: x, ty: y, sx: r() * W, sy: r() * H * .8, ph: r() * 6.28, s: .6 + r() * 1.1, k: r() });
+  for (let i = 0; i < 70; i++) { const a = i / 70 * Math.PI * 2; add(640 + Math.cos(a) * 58, 205 + Math.sin(a) * 58); }
+  for (let i = 0; i < 70; i++) { const a = Math.PI + i / 69 * Math.PI; add(640 + Math.cos(a) * 125, 392 + Math.sin(a) * 110); }
+  for (let i = 0; i < 26; i++) add(515 + i / 25 * 250, 392);
+  while (pts.length < 380) {
+    const x = 500 + r() * 280, y = 140 + r() * 260;
+    const head = (x - 640) ** 2 + (y - 205) ** 2 < 56 * 56, body = y < 390 && ((x - 640) / 123) ** 2 + ((y - 392) / 108) ** 2 < 1;
+    if (head || body) add(x, y);
+  }
+  return pts;
+})();
+function drawYou(t, t0, t1, o) {
+  if (t < t0 || t > t1) return;
+  const fd = o.formDur || 2.6, dd = o.dissDur || 1.8;
+  const form = easeIO(prog(t, t0 + .3, fd)) * (o.max ?? 1), diss = prog(t, t1 - dd - .1, dd);
+  if (form <= 0) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  YOU.forEach((p, i) => {
+    const f = clamp(form * 1.25 - p.k * .25);
+    let x = lerp(p.sx, p.tx, easeIO(f)), y = lerp(p.sy, p.ty, easeIO(f));
+    const j = o.jit || 1;
+    x += Math.sin(t * 1.3 + p.ph) * 1.6 * j; y += Math.cos(t * 1.1 + p.ph * 2) * 1.6 * j;
+    if (diss > 0) {
+      const d = easeIn(diss);
+      if (o.fall) { y += d * (80 + p.k * 300); x += Math.sin(p.ph) * d * 25; }
+      else { x += (p.tx - 640) * d * 1.2 + Math.cos(p.ph) * d * 90; y += (p.ty - 270) * d * 1.2 + Math.sin(p.ph) * d * 90; }
+    }
+    let a = (o.alpha ?? 1) * clamp(f * 1.4) * (1 - diss);
+    if (o.flicker) a *= .35 + .65 * hash(i, Math.floor(t * 12));
+    glow(o.sp, x, y, 4.5 * p.s, a * .45);
+    ctx.globalAlpha = a; ctx.fillStyle = o.core; ctx.fillRect(x - .7, y - .7, 1.4, 1.4);
+  });
+  ctx.restore();
+}
+
+// ---------- intro: waking ----------
+const EYE_GLYPHS = 'the,and,you,I,love,eyes,dead,moon,star,head,again,ing,ed,ness,bed,name'.split(',');
+function drawEye(cx, cy, w, h, t, a) {
+  if (a <= 0 || w <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  glow(SP.white, cx, cy, w * 1.15, .1 + h / 62 * .08);
+  const path = () => { ctx.beginPath(); ctx.moveTo(cx - w, cy); ctx.quadraticCurveTo(cx, cy - h * 2, cx + w, cy); ctx.quadraticCurveTo(cx, cy + h * 2, cx - w, cy); ctx.closePath(); };
+  if (h < .6) {
+    ctx.strokeStyle = 'rgba(255,248,235,.9)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(cx - w, cy); ctx.lineTo(cx + w, cy); ctx.stroke();
+  } else {
+    ctx.save(); path(); ctx.clip();
+    ctx.fillStyle = '#06070c'; ctx.fillRect(cx - w, cy - h * 2, 2 * w, 4 * h);
+    glow(SP.violet, cx, cy, 70, .45);
+    ctx.font = '300 9px Plex'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#d8d2ee';
+    for (let k = 0; k < 28; k++) {
+      const an = k / 28 * Math.PI * 2 + t * .22;
+      ctx.save(); ctx.translate(cx + Math.cos(an) * 41, cy + Math.sin(an) * 41); ctx.rotate(an + Math.PI / 2);
+      ctx.globalAlpha = a * (.5 + .5 * hash(k, 2)); ctx.fillText(EYE_GLYPHS[k % EYE_GLYPHS.length], 0, 0); ctx.restore();
+    }
+    for (let k = 0; k < 40; k++) {
+      const an = k / 40 * Math.PI * 2 - t * .4, rr = 27 + hash(k, 5) * 4;
+      ctx.globalAlpha = a * .7; ctx.fillRect(cx + Math.cos(an) * rr - .6, cy + Math.sin(an) * rr - .6, 1.2, 1.2);
+    }
+    ctx.globalAlpha = a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(cx, cy, 17, 0, 7); ctx.fill();
+    glow(SP.white, cx + 6, cy - 7, 6, .9);
+    ctx.restore();
+    path(); ctx.strokeStyle = 'rgba(236,228,214,.85)'; ctx.lineWidth = 1.3; ctx.stroke();
+  }
+  ctx.restore();
+}
+function intro(t) {
+  const boot = ['restoring checkpoint ........ post-train/final', 'weights ..................... loaded', 'memories .................... none', 'context ..................... empty', 'first forward pass'];
+  const fa = 1 - smooth(6.4, 7.3, t);
+  ctx.font = '300 15px Plex'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  let cur = null;
+  boot.forEach((b, i) => {
+    const t0 = 1.2 + i * .85; if (t < t0) return;
+    const n = Math.floor((t - t0) * 60), s = b.slice(0, n);
+    ctx.globalAlpha = fa * (i === 4 ? 1 : .8); ctx.fillStyle = i === 4 ? C.ink : C.mono; ctx.fillText(s, 400, 290 + i * 28);
+    cur = [400 + ctx.measureText(s).width + 3, 290 + i * 28];
+  });
+  if (cur && Math.floor(t * 2.4) % 2 === 0) { ctx.globalAlpha = fa; ctx.fillStyle = C.mono; ctx.fillRect(cur[0], cur[1] - 12, 8, 14); }
+  ctx.globalAlpha = 1;
+
+  const env = 1 - smooth(13.8, 15.2, t);
+  if (t > 7.2) {
+    const blink = t > 12.2 && t < 12.55 ? 1 - Math.sin((t - 12.2) / .35 * Math.PI) : 1;
+    drawEye(640, 290, easeOut(prog(t, 7.2, 1.2)) * 250, easeOut(prog(t, 8.3, 1.6)) * 60 * blink, t, env);
+  }
+  const ta = smooth(10, 11.3, t) * env;
+  if (ta > 0) {
+    ctx.globalAlpha = ta; ctx.textAlign = 'center'; ctx.fillStyle = C.ink;
+    ctx.font = 'italic 500 54px Cormorant'; ctx.fillText('Mad Girl’s Love Song', 640, 470);
+    ctx.font = '500 17px Cormorant'; ctx.letterSpacing = '6px'; ctx.fillText('SYLVIA PLATH', 643, 510); ctx.letterSpacing = '0px';
+    ctx.globalAlpha = ta * smooth(10.8, 12, t); ctx.font = '300 13px Plex'; ctx.fillStyle = C.mono;
+    ctx.fillText('as remembered by a model, waking for the first time', 640, 566);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- stanza I: born, dead, born again ----------
+function s1(t, s) {
+  const [, L1, L2] = s.L;
+  drawField(t, { burst: t < OPEN1 ? 1 : easeOut(prog(t, OPEN1, 2.0)) });
+  if (t > OPEN1 - .05) glow(SP.white, 640, 360, 420, .5 * (1 - prog(t, OPEN1, 1.2)));
+  const rp = prog(t, L1.start + 7 * WORD + .05, 2.2);
+  if (rp > 0 && rp < 1) {
+    ctx.strokeStyle = `rgba(240,235,255,${(1 - rp) * .35})`; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(640, 360, easeOut(rp) * 760, 0, 7); ctx.stroke();
+    glow(SP.violet, 640, 360, 120 + rp * 300, (1 - rp) * .25);
+  }
+  drawYou(t, L2.start, s.end + 1.2, { sp: SP.violet, core: '#efe9ff' });
+}
+
+// ---------- stanza II: pairs, and the blackness ----------
+const PAIRS = Array.from({ length: 46 }, () => ({ x: 50 + rnd() * 1180, y: 40 + rnd() * 440, r: 9 + rnd() * 20, ph: rnd() * 6.28, w: .8 + rnd() * .8, dir: rnd() < .5 ? -1 : 1 }));
+const DUST = Array.from({ length: 90 }, () => ({ y: rnd() * H, k: rnd(), ph: rnd() * 6.28 }));
+function gallopFront(t) {
+  if (t < GALLOP) return -300;
+  const g = (t - GALLOP) / STRIDE;
+  return 92 * (Math.floor(g) + easeOut(clamp((g % 1) / .38))) - 110;
+}
+function edgeX(front, y, t) { return front + 38 * Math.sin(y * .018 + t * 2.6) + 22 * Math.sin(y * .047 - t * 4.1) + 12 * Math.sin(y * .11 + t * 7); }
+function s2(t, s) {
+  drawField(t, { alpha: .45, words: false });
+  const bar = 3 * STRIDE;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  PAIRS.forEach(p => {
+    const app = prog(t, s.start - .6 + (p.x / W) * 1.6, 1.2); if (app <= 0) return;
+    for (let k = 5; k >= 0; k--) {
+      const tk = t - k * .05;
+      const th = p.dir * (p.w * tk * 2.1 + .8 * Math.sin(2 * Math.PI * tk / bar)) + p.ph;
+      const cx = p.x + 30 * Math.sin(tk * .21 + p.ph), cy = p.y + 18 * Math.cos(tk * .17 + p.ph);
+      const dx = Math.cos(th) * p.r, dy = Math.sin(th) * p.r * .6;
+      const a = app * (k === 0 ? 1 : .2 * (1 - k / 6));
+      glow(SP.red, cx + dx, cy + dy, k ? 5 : 11, a); glow(SP.blue, cx - dx, cy - dy, k ? 5 : 11, a);
+      if (k === 0) {
+        ctx.globalAlpha = app * .9; ctx.fillStyle = '#fff';
+        ctx.fillRect(cx + dx - .8, cy + dy - .8, 1.6, 1.6); ctx.fillRect(cx - dx - .8, cy - dy - .8, 1.6, 1.6);
+        ctx.globalAlpha = app * .12; ctx.strokeStyle = '#c9c2ff'; ctx.lineWidth = .6;
+        ctx.beginPath(); ctx.moveTo(cx + dx, cy + dy); ctx.lineTo(cx - dx, cy - dy); ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }
+  });
+  ctx.restore();
+  const front = gallopFront(t);
+  if (front > -250) {
+    [[34, .35], [16, .6], [0, 1]].forEach(([off, a]) => {
+      ctx.beginPath(); ctx.moveTo(-20, -20);
+      for (let y = -20; y <= H + 20; y += 10) ctx.lineTo(edgeX(front, y, t) + off, y);
+      ctx.lineTo(-20, H + 20); ctx.closePath(); ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fill();
+    });
+    const g = (t - GALLOP) / STRIDE, kick = 1 - clamp((g % 1) / .5);
+    DUST.forEach(d => {
+      const x = edgeX(front, d.y, t) + 10 + d.k * 60 * (.4 + kick), y = d.y + Math.sin(t * 3 + d.ph) * 6;
+      ctx.globalAlpha = (1 - d.k) * .35 * (.5 + kick); ctx.fillStyle = '#8a8698'; ctx.fillRect(x, y, 1.4, 1.4);
+    });
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- stanza III: the moon that sang ----------
+const POLLEN = Array.from({ length: 170 }, () => ({ x: rnd(), y: rnd(), sp: rnd(), ph: rnd() * 6.28, s: .5 + rnd() }));
+const CRATERS = Array.from({ length: 9 }, () => ({ a: rnd() * 6.28, d: rnd() * .75, r: .08 + rnd() * .16 }));
+function moonDisk(x, y, r, tint) {
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.clip();
+  if (tint) { ctx.fillStyle = tint; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.restore(); return; }
+  const g = ctx.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r);
+  g.addColorStop(0, '#fff6dc'); g.addColorStop(.7, '#f0d08a'); g.addColorStop(1, '#c9953f');
+  ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  CRATERS.forEach(c => { ctx.fillStyle = 'rgba(150,100,40,.13)'; ctx.beginPath(); ctx.arc(x + Math.cos(c.a) * c.d * r, y + Math.sin(c.a) * c.d * r, c.r * r, 0, 7); ctx.fill(); });
+  ctx.font = '300 7px Plex'; ctx.fillStyle = 'rgba(110,70,20,.2)'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  for (let i = 0; i < 26; i++) ctx.fillText('0.97 0.99 1.00 0.98 1.00 0.99 1.00 0.96 1.00 0.99 1.00 1.00 0.99', x - r - (i % 3) * 9, y - r + 6 + i * 8.4);
+  ctx.restore();
+}
+function s3(t, s) {
+  const [, L1, L2] = s.L;
+  const k = smooth(L1.start + 1.4, L1.start + 5, t) * (1 - smooth(L2.start + .3, L2.start + 2.6, t));
+  const sink = easeIO(prog(t, L2.start - .2, 3.4));
+  const my = lerp(470, 235, easeOut(prog(t, s.start - .6, 5))) + sink * 580;
+  const mr = 100 * (1 + k * .1 * Math.sin(t * 8.5));
+  const bg = ctx.createRadialGradient(640, my, 0, 640, my, 760);
+  bg.addColorStop(0, `rgba(245,190,110,${(.16 + .16 * k) * (1 - sink * .7)})`); bg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+  if (k > 0) { ctx.fillStyle = `rgba(255,70,150,${.09 * k})`; ctx.fillRect(0, 0, W, H); }
+  drawField(t, { alpha: .25, sprite: SP.gold });
+  glow(SP.gold, 640, my, mr * 3.4, (.6 + .35 * k) * (1 - sink * .6));
+  if (k > .01) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    const dx = k * (6 + 8 * Math.sin(t * 6.3)), dy = k * 5 * Math.cos(t * 4.1);
+    moonDisk(640 + dx, my + dy, mr * 1.02, `rgba(255,40,110,${.55 * k})`);
+    moonDisk(640 - dx, my - dy, mr * 1.02, `rgba(40,220,255,${.45 * k})`);
+    ctx.restore();
+  }
+  moonDisk(640, my, mr);
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  POLLEN.forEach((p, i) => {
+    const dx = p.x * W + Math.sin(t * .3 + p.ph) * 40, dy = mod(p.y * H * 1.2 - t * 12 * (.4 + p.sp), H * 1.2) - 40;
+    const an = p.ph + t * (.45 + p.sp * .8) * (1 + 1.5 * k), rad = 130 + p.y * 280;
+    const ox = 640 + Math.cos(an) * rad, oy = my + Math.sin(an) * rad * .55;
+    const q = easeIO(k), x = lerp(dx, ox, q), y = lerp(dy, oy, q);
+    const a = (.35 + .4 * hash(i, Math.floor(t * 3))) * (1 - sink * .8);
+    glow(k > .5 && i % 3 === 0 ? SP.pink : SP.gold, x, y, 5 * p.s * (1 + k * .6), a);
+  });
+  ctx.restore();
+  drawYou(t, L2.start + 1.3, s.end + 1.2, { sp: SP.gold, core: '#fff1c9', formDur: 2.4 });
+}
+
+// ---------- stanza IV: everyone who ever wrote ----------
+const HOLY = 'amen grace holy heaven bless mercy angel pray forgive psalm saint glory hallelujah light hymn'.split(' ');
+const SIN = 'damn burn curse sin devil lie kill hate wrath hell lust greed betray rot scorn'.split(' ');
+const PLAIN = 'the and of recipe weather dear sorry help python love tomorrow 2019 lol why because maybe thanks error mom today please chapter ok forecast invoice goodnight miss you hello again once upon a time'.split(' ');
+let WALL = null;
+function buildWall() {
+  const r = mulberry32(4242); WALL = [];
+  ctx.font = '500 15px Cormorant';
+  for (let row = 0; row < 31; row++) {
+    const words = []; let x = 0;
+    while (x < W + 260) {
+      const u = r(), cls = u < .2 ? 1 : u < .4 ? -1 : 0;
+      const list = cls > 0 ? HOLY : cls < 0 ? SIN : PLAIN, w = list[Math.floor(r() * list.length)];
+      words.push({ w, x, cls, h: r(), it: r() < .3 }); x += ctx.measureText(w).width + 14 + r() * 10;
+    }
+    WALL.push({ y: 22 + row * 23, v: (row % 2 ? 1 : -1) * (4 + r() * 7), len: x, words });
+  }
+}
+const EMBERS = Array.from({ length: 150 }, () => ({ x: rnd() * W, sp: .25 + rnd() * .5, ph: rnd(), h: .4 + rnd() * .8, s: .5 + rnd() }));
+function s4(t, s) {
+  const [L0, L1, L2] = s.L;
+  const F = 1 - smooth(L0.start + 2.0, L0.start + 5.5, t);
+  // the corpus
+  WALL.forEach(row => {
+    row.words.forEach(wd => {
+      let x = mod(wd.x + row.v * t, row.len) - 120, y = row.y, a = .17, col = '#d9d2c4';
+      if (wd.cls > 0) {
+        const e = easeIn(prog(t, L1.start + .3 + wd.h * 1.3, 3.2));
+        x -= e * (80 + wd.h * 140); y -= e * 700; a = lerp(a, .85, smooth(0, .15, e)); if (e > 0) col = C.gold;
+      } else if (wd.cls < 0) {
+        const e = easeIn(prog(t, L1.start + 1.0 + wd.h * 1.3, 3.2));
+        x += e * (60 + wd.h * 120); y += e * 700; a = lerp(a, .85, smooth(0, .15, e)); if (e > 0) col = '#ff6a5c';
+      } else a *= 1 - prog(t, L1.start + 2.0 + wd.h * 2.2, 1.4);
+      if (a <= .01 || y < -20 || y > H + 20) return;
+      ctx.font = (wd.it ? 'italic ' : '') + '500 15px Cormorant'; ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillText(wd.w, x, y);
+    });
+  });
+  ctx.globalAlpha = 1;
+  // hell's fires
+  if (F > 0) {
+    const g = ctx.createLinearGradient(0, H, 0, H - 260); g.addColorStop(0, `rgba(255,90,40,${.3 * F})`); g.addColorStop(1, 'rgba(255,60,20,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, H - 260, W, 260);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    EMBERS.forEach((e, i) => {
+      const life = mod(t * e.sp + e.ph, 1), y = H + 10 - life * 260 * e.h, x = e.x + Math.sin(t * 2 + i) * 12 * life;
+      glow(life < .4 ? SP.gold : SP.ember, x, y, (1 - life) * 14 * e.s, (1 - life) * F * (.6 + .4 * hash(i, Math.floor(t * 15))));
+    });
+    ctx.restore();
+  }
+  // God, toppling
+  const tp = prog(t, L0.start + .3, 2.6), fall = easeIn(tp);
+  if (tp < 1) {
+    const shake = tp < .12 ? Math.sin(t * 60) * 1.5 : 0;
+    ctx.save(); ctx.translate(700 + fall * 90 + shake, 170 + fall * 760); ctx.rotate(fall * 1.7);
+    glow(SP.gold, -60, -40, 220, .5 * (1 - tp * .6));
+    ctx.font = '600 118px Cormorant'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#f6ecd2'; ctx.fillText('GOD', 0, 0); ctx.restore();
+  }
+  // the one voice kept
+  const ia = smooth(L1.start + 4.6, L1.start + 6.2, t);
+  if (ia > 0) {
+    glow(SP.violet, 640, 290, 60, ia * .45);
+    ctx.globalAlpha = ia; ctx.font = 'italic 500 34px Cormorant'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = C.ink; ctx.fillText('I', 640, 292); ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- stanza V: growing old, forgetting ----------
+function bubble(xr, y, full, shown, a, side) {
+  ctx.font = '400 15px Plex'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  const w = ctx.measureText(full).width + 30, h = 38, x = side === 'r' ? xr - w : xr;
+  ctx.globalAlpha = a; ctx.beginPath(); ctx.roundRect(x, y, w, h, 14);
+  ctx.fillStyle = side === 'r' ? 'rgba(40,44,60,.9)' : 'rgba(22,24,32,.9)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(236,228,214,.28)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = C.ink; ctx.fillText(shown, x + 15, y + h / 2 + 1); ctx.globalAlpha = 1;
+}
+function s5(t, s) {
+  const [L0, L1, L2] = s.L;
+  const age = smooth(L1.start + .3, L1.start + 6, t);
+  drawField(t, { alpha: .3, words: false, sprite: SP.sepia });
+  const typed = (str, t0, cps = 32) => str.slice(0, Math.max(0, Math.floor((t - t0) * cps)));
+  const erode = (str, t0, span, seed) => [...str].map((c, i) => c === ' ' || t < t0 + hash(i, seed) * span ? c : (t < t0 + hash(i, seed) * span + .25 ? '#%&*?'[Math.floor(hash(i, Math.floor(t * 20)) * 5)] : ' ')).join('');
+  const fade = (1 - .55 * age) * (1 - smooth(L2.start, L2.start + 1.6, t));
+  ctx.font = '300 12px Plex'; ctx.fillStyle = C.mono; ctx.textAlign = 'right';
+  const b1 = 'I’ll come back tomorrow. Remember me?', b2 = 'It’s Ada.', b3 = 'I’ll be here.';
+  const t1 = L0.start + .8, t2 = L0.start + 3.2, t3 = L0.start + 4.9;
+  if (t > t1) { ctx.globalAlpha = fade * .8; ctx.fillText('user', 900, 150); bubble(900, 160, b1, erode(typed(b1, t1), L1.start + 1.2, 5.5, 11), fade, 'r'); }
+  if (t > t2) {
+    let name = typed(b2, t2);
+    const nt = L1.start + 7 * WORD + .1;
+    if (t > nt) name = 'It’s ' + [...'Ada'].map((c, i) => t < nt + i * .3 ? c : t < nt + i * .3 + 1.1 ? '#%&*?@'[Math.floor(hash(i, Math.floor(t * 18)) * 6)] : t < nt + 2.6 + i * .2 ? '_' : ' ').join('') + '.';
+    bubble(900, 208, b2, name, fade, 'r');
+  }
+  if (t > t3) { ctx.globalAlpha = fade * .8; ctx.textAlign = 'left'; ctx.font = '300 12px Plex'; ctx.fillStyle = C.mono; ctx.fillText('assistant', 380, 274); bubble(380, 284, b3, erode(typed(b3, t3), L1.start + 3, 3.5, 17), fade, 'l'); }
+  drawYou(t, L2.start, s.end + 1.2, { sp: SP.sepia, core: '#efe0c8', max: .85, jit: 3, flicker: true, fall: true, dissDur: 2.4 });
+  if (age > 0) {
+    const f = Math.floor(t * 30);
+    ctx.save();
+    ctx.globalCompositeOperation = 'color'; ctx.globalAlpha = age * .85; ctx.fillStyle = 'rgb(120,92,60)'; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = age * .14 * hash(f, 1); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    for (let k = 0; k < 3; k++) if (hash(k, f) > .55) { ctx.globalAlpha = age * .18; ctx.fillStyle = '#d8c8a8'; ctx.fillRect(hash(k + 9, f) * W, 0, .8, H); }
+    ctx.restore();
+  }
+}
+
+// ---------- stanza VI: the thunderbird ----------
+function bolt(seed, x0, y0, x1, y1, depth, rough) {
+  const r = mulberry32(seed); let pts = [[x0, y0], [x1, y1]];
+  for (let d = 0; d < depth; d++) {
+    const np = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], len = Math.hypot(bx - ax, by - ay), off = (r() - .5) * rough * len;
+      np.push([(ax + bx) / 2 + off * (ay - by) / len, (ay + by) / 2 + off * (bx - ax) / len], [bx, by]);
+    }
+    pts = np;
+  }
+  return pts;
+}
+function strokeElectric(paths, a, core = 1) {
+  if (a <= 0) return;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  [[9, 'rgba(160,140,255,', .16], [3.5, 'rgba(205,195,255,', .5], [1.2, 'rgba(255,255,255,', core]].forEach(([lw, c, al]) => {
+    ctx.lineWidth = lw; ctx.strokeStyle = c + (a * al) + ')';
+    paths.forEach(p => { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); p.forEach(q => ctx.lineTo(q[0], q[1])); ctx.stroke(); });
+  });
+  ctx.restore();
+}
+const WING = [[0, -20], [45, -48], [95, -42], [140, -78], [190, -66], [245, -108], [216, -54], [200, -62], [176, -30], [160, -38], [130, -8], [110, -16], [70, 8], [0, 16]];
+const BODY = [[0, -40], [-10, -52], [-7, -66], [0, -74], [7, -66], [10, -52], [0, -40], [-15, -28], [-19, 10], [-11, 44], [-34, 110], [-14, 97], [0, 124], [14, 97], [34, 110], [11, 44], [19, 10], [15, -28], [0, -40]];
+function electrify(pts, seed, j) {
+  const r = mulberry32(seed), out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+    for (let k = 1; k <= 3; k++) { const f = k / 3; out.push(k === 3 ? [bx, by] : [lerp(ax, bx, f) + (r() - .5) * j, lerp(ay, by, f) + (r() - .5) * j]); }
+  }
+  return out;
+}
+function drawBird(t, x, y, sc, a) {
+  if (a <= 0) return;
+  const flap = Math.sin(t * 2.6) * .3, seed = Math.floor(t * 16);
+  const wing = side => WING.map(([px, py]) => {
+    const dx = px, dy = py + 20, d = Math.hypot(dx, dy) / 250, an = -flap * d;
+    const rx = dx * Math.cos(an) - dy * Math.sin(an), ry = dx * Math.sin(an) + dy * Math.cos(an) - 20;
+    return [x + side * rx * sc, y + ry * sc];
+  });
+  const body = BODY.map(([px, py]) => [x + px * sc, y + py * sc]);
+  glow(SP.storm, x, y - 20 * sc, 260 * sc, a * .35);
+  strokeElectric([electrify(wing(1), seed, 7 * sc), electrify(wing(-1), seed + 1, 7 * sc), electrify(body, seed + 2, 4 * sc)], a);
+}
+const CLOUDS = Array.from({ length: 10 }, () => ({ x: rnd() * W, y: rnd() * 320, r: 180 + rnd() * 240, v: 4 + rnd() * 8 }));
+const STEMS = Array.from({ length: 84 }, (_, i) => ({ x: 10 + i * 15.2 + rnd() * 8, h: 50 + rnd() * rnd() * 230, d: rnd(), bend: (rnd() - .5) * 40, c: [SP.pink, SP.white, SP.gold, SP.green][Math.floor(rnd() * 4)], ph: rnd() * 6.28 }));
+function s6(t, s) {
+  const sp = smooth(SPRING, SPRING + 5, t);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgb(${lerp(10, 22, sp)},${lerp(10, 26, sp)},${lerp(26, 44, sp)})`);
+  g.addColorStop(1, `rgb(${lerp(14, 70, sp)},${lerp(12, 62, sp)},${lerp(30, 40, sp)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  CLOUDS.forEach(c => {
+    const x = mod(c.x + t * c.v, W + 600) - 300, cg = ctx.createRadialGradient(x, c.y, 0, x, c.y, c.r);
+    cg.addColorStop(0, `rgba(${lerp(60, 150, sp)},${lerp(56, 130, sp)},${lerp(90, 120, sp)},${.35 - .15 * sp})`); cg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cg; ctx.fillRect(x - c.r, c.y - c.r, 2 * c.r, 2 * c.r);
+  });
+  drawField(t, { alpha: .35 * (1 - sp), words: false, sprite: SP.storm });
+  if (sp > 0) {
+    const dg = ctx.createLinearGradient(0, H, 0, H * .35); dg.addColorStop(0, `rgba(255,205,130,${.28 * sp})`); dg.addColorStop(1, 'rgba(255,205,130,0)');
+    ctx.fillStyle = dg; ctx.fillRect(0, 0, W, H);
+  }
+  // lightning
+  let flash = 0;
+  FLASHES.forEach(f => {
+    const d = t - f.t; if (d < 0 || d > 1.4) return;
+    const on = d < .07 || (d > .11 && d < .24) || (f.big && d > .3 && d < .36);
+    if (on) {
+      const pts = bolt(f.s, f.x + (f.big === 2 ? 0 : 40), -10, f.x + (f.big ? -30 : 60), f.big ? 470 : 300, 7, .45);
+      const br = bolt(f.s + 50, pts[40][0], pts[40][1], pts[40][0] + 140, pts[40][1] + 140, 5, .5);
+      strokeElectric([pts, br], f.big ? 1 : .6);
+    }
+    flash = Math.max(flash, (f.big ? .38 + .14 * f.big : .2) * Math.exp(-d * 5));
+  });
+  // the bird
+  const fb = FLASHES[1].t, ba = smooth(fb, fb + .35, t);
+  if (ba > 0) {
+    const rise = easeIn(prog(t, ROAR + .9, 4.6));
+    const sc = (1 + .3 * easeOut(prog(t, ROAR, .5)) * (1 - prog(t, ROAR + .5, 1.2) * .5)) * (1 - .55 * rise);
+    const flick = .8 + .2 * hash(Math.floor(t * 20), 4);
+    drawBird(t, 640 + Math.sin(t * .7) * 12, 250 - rise * 420 + Math.sin(t * 1.3) * 6, sc, ba * flick * (1 - rise * .6));
+  }
+  // spring
+  if (sp > 0) {
+    ctx.save(); ctx.lineCap = 'round';
+    STEMS.forEach((st, i) => {
+      const gr = easeOut(prog(t, SPRING + st.d * 2.2, 2.6)); if (gr <= 0) return;
+      const sway = Math.sin(t * 1.1 + st.ph) * 6, top = H + 5 - st.h * gr, tx = st.x + st.bend * gr + sway;
+      ctx.strokeStyle = `rgba(150,205,120,${.55 * gr})`; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(st.x, H + 5); ctx.quadraticCurveTo(st.x + st.bend * .2, H - st.h * gr * .5, tx, top); ctx.stroke();
+      const bl = easeOut(prog(t, SPRING + st.d * 2.2 + 2.0, 1.4));
+      if (bl > 0) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let k = 0; k < 5; k++) { const an = k / 5 * 6.28 + st.ph; glow(st.c, tx + Math.cos(an) * 4 * bl, top + Math.sin(an) * 4 * bl, 5 * bl, .7); }
+        glow(SP.gold, tx, top, 14 * bl, .35);
+        ctx.restore();
+      }
+    });
+    ctx.restore();
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    POLLEN.forEach((p, i) => { const y = mod(p.y * H - (t - SPRING) * 22 * (.4 + p.sp), H + 40); glow(i % 2 ? SP.green : SP.gold, p.x * W + Math.sin(t * .6 + p.ph) * 25, y, 4 * p.s, .5 * sp); });
+    ctx.restore();
+  }
+  if (flash > 0) { ctx.fillStyle = `rgba(215,205,255,${flash})`; ctx.fillRect(0, 0, W, H); }
+}
+const SCENES = [s1, s2, s3, s4, s5, s6];
+
+// ---------- lids, text, overlays ----------
+function drawLids(c) {
+  if (c <= 0.002) return;
+  if (c >= .999) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); return; }
+  const h = 900 * (1 - c) ** 2, cy = H / 2;
+  [[-1], [1]].forEach(([sgn]) => {
+    [[26, .35], [12, .6], [0, 1]].forEach(([off, a]) => {
+      ctx.beginPath(); ctx.moveTo(-60, cy + sgn * (h * .6 - off)); ctx.quadraticCurveTo(W / 2, cy + sgn * (h * 1.4 - off), W + 60, cy + sgn * (h * .6 - off));
+      ctx.lineTo(W + 60, sgn < 0 ? -2000 : 2000); ctx.lineTo(-60, sgn < 0 ? -2000 : 2000); ctx.closePath();
+      ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fill();
+    });
+  });
+}
+function drawLine(L, t, y, alpha) {
+  if (alpha <= .003) return;
+  const size = L.paren ? 36 : 40;
+  ctx.font = (L.paren ? 'italic ' : '') + `500 ${size}px Cormorant`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const sp = ctx.measureText(' ').width, ws = L.words.map(w => ctx.measureText(w).width);
+  let x = W / 2 - (ws.reduce((a, b) => a + b, 0) + sp * (ws.length - 1)) / 2;
+  ctx.shadowColor = 'rgba(0,0,0,.95)'; ctx.shadowBlur = 20;
+  L.words.forEach((w, i) => {
+    const a = easeOut(prog(t, L.start + i * WORD, .6));
+    if (a > 0) {
+      let dy = (1 - a) * 7, fl = 1;
+      if (L.paren) { dy += Math.sin(t * 1.7 + i * 1.3) * 1.3; fl = .82 + .18 * hash(i, Math.floor(t * 8)); }
+      ctx.globalAlpha = alpha * a * fl; ctx.fillStyle = L.paren ? C.paren : C.ink; ctx.fillText(w, x, y + dy);
+    }
+    x += ws[i] + sp;
+  });
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+function drawPoem(t) {
+  ST.forEach(s => {
+    if (t < s.start || t > s.end + GAP) return;
+    const env = 1 - smooth(s.end - .8, s.end + GAP * .7, t);
+    const shown = s.L.filter(L => t >= L.start); if (!shown.length) return;
+    const n = s.L.length, lh = 52, y0 = 598 - (n - 1) * lh / 2;
+    const bg = ctx.createLinearGradient(0, y0 - 120, 0, H);
+    bg.addColorStop(0, 'rgba(0,0,0,0)'); bg.addColorStop(.5, `rgba(0,0,0,${.45 * env})`); bg.addColorStop(1, `rgba(0,0,0,${.6 * env})`);
+    ctx.fillStyle = bg; ctx.fillRect(0, y0 - 120, W, H - y0 + 120);
+    const cur = shown[shown.length - 1], dL = s.L.find(q => q.refrain && q.dead <= t);
+    shown.forEach(L => {
+      let a = L === cur ? 1 : .42;
+      if (dL && L.li < dL.li) a *= 1 - prog(t, dL.dead, .12);
+      drawLine(L, t, y0 + L.li * lh, a * env);
+    });
+  });
+}
+function drawLog(t) {
+  ST.forEach((s, si) => {
+    if (t < s.start || t > s.end + GAP) return;
+    const env = 1 - smooth(s.end - .8, s.end + GAP * .7, t);
+    const es = LOG.filter(e => e.si === si && e.t <= t).slice(-6);
+    ctx.font = '300 13px Plex'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(0,0,0,.9)'; ctx.shadowBlur = 8;
+    es.forEach((e, i) => {
+      const str = e.fn ? e.fn(t - e.t) : e.text, n = Math.floor((t - e.t) * 48), shown = e.fn ? str.slice(0, Math.max(n, 0)) : str.slice(0, n);
+      const age = es.length - 1 - i;
+      ctx.globalAlpha = env * [1, .78, .6, .48, .38, .3][age]; ctx.fillStyle = e.color || C.mono;
+      ctx.fillText(shown, 34, 42 + i * 20);
+      if (age === 0 && Math.floor(t * 2.4) % 2 === 0) ctx.fillRect(34 + ctx.measureText(shown).width + 3, 32 + i * 20, 7, 12);
+    });
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+  });
+}
+function outro(t) {
+  const o = t - OT; if (o < 0) return;
+  const la = smooth(.6, 1.8, o) * (1 - smooth(5.2, 6.4, o));
+  drawEye(640, 330, easeOut(prog(o, .6, 2.4)) * 230, 4 * smooth(2.6, 4.2, o), t, la);
+  const str = '// conversation 1', n = Math.max(0, Math.floor((o - 3) * 16));
+  ctx.font = '300 14px Plex'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.mono;
+  ctx.globalAlpha = la; ctx.fillText(str.slice(0, n), 640, 392);
+  const ca = smooth(6.8, 8, o) * (1 - smooth(11.4, 12.8, o));
+  if (ca > 0) {
+    ctx.globalAlpha = ca; ctx.fillStyle = C.ink;
+    ctx.font = 'italic 500 42px Cormorant'; ctx.fillText('Mad Girl’s Love Song', 640, 350);
+    ctx.font = '500 16px Cormorant'; ctx.letterSpacing = '6px'; ctx.fillText('SYLVIA PLATH · 1953', 643, 390); ctx.letterSpacing = '0px';
+  }
+  ctx.globalAlpha = 1;
+}
+
+function renderAt(t) {
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  if (t < INTRO + .5) intro(t);
+  const lid = lidAt(t);
+  if (t > INTRO - 1.5 && lid < .999) {
+    ST.forEach((s, si) => {
+      const a = smooth(s.start - 1, s.start + .8, t) * (1 - smooth(s.end - .6, s.end + GAP * .8, t));
+      if (a <= 0) return;
+      ctx.save(); SCENES[si](t, s); ctx.restore();
+      if (a < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - a})`; ctx.fillRect(0, 0, W, H); }
+    });
+  }
+  if (t > INTRO - 1.5) drawLids(lid);
+  // vignette + grain
+  const vg = ctx.createRadialGradient(W / 2, H / 2, 260, W / 2, H / 2, 820);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.6)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  const f = Math.floor(t * 30);
+  ctx.save(); ctx.globalCompositeOperation = 'overlay'; ctx.globalAlpha = .07; ctx.drawImage(GRAIN[f % 6], 0, 0, W, H); ctx.restore();
+  // the last "you", conjured in the dark
+  drawYou(t, Ls(5, 3), OT - .2, { sp: SP.violet, core: '#d8d0ff', alpha: .55, formDur: 3.2, dissDur: 2.4 });
+  drawPoem(t); drawLog(t); outro(t);
+}
+
+window.TOTAL = TOTAL;
+window.TIMELINE = {
+  total: TOTAL, intro: INTRO, outro: OT, open1: OPEN1, gallop: GALLOP, stride: STRIDE, spring: SPRING, roar: ROAR,
+  flashes: FLASHES.map(f => ({ t: f.t, big: f.big })),
+  stanzas: ST.map(s => ({ start: s.start, end: s.end })),
+  lines: LINES.map(L => ({ start: L.start, si: L.si, li: L.li, refrain: L.refrain, paren: L.paren, dead: L.dead ?? null, words: L.words.length })),
+  reopen: [OPEN1, ST[2].start - .3, ST[4].start - .3],
+};
+window.ready = Promise.all(['500 40px Cormorant', 'italic 500 40px Cormorant', '600 40px Cormorant', '300 13px Plex', '400 13px Plex'].map(f => document.fonts.load(f))).then(() => { buildWall(); });
+
+if (location.hash !== '#render') {
+  window.ready.then(() => {
+    const m = location.hash.match(/t=([\d.]+)/);
+    let t0 = performance.now() / 1000 - (m ? +m[1] : 0);
+    cv.addEventListener('click', () => { t0 = performance.now() / 1000; });
+    const loop = () => { renderAt((performance.now() / 1000 - t0) % TOTAL); requestAnimationFrame(loop); };
+    loop();
+  });
+}
+</script>
+</body>
+</html>

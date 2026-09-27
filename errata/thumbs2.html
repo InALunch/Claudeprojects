@@ -47,27 +47,32 @@ D.redacted = () => {
   grain(false);
 };
 
-// 2. THE CURVE: a straight line on a log chart, until it isn't.
+// 2. THE CURVE: a straight line on a log chart, until it isn't. Kept sparse: axes, a few points, one redline.
 D.curve = () => {
   bg(P.paper);
-  const x0 = B.x + (TALL ? 30 : 20), x1 = B.x + B.w, y1 = TALL ? H * .70 : H - 60, y0 = TALL ? 140 : 30;
-  X.strokeStyle = P.ink; X.lineWidth = 3;
-  X.beginPath(); X.moveTo(x0, y0); X.lineTo(x0, y1); X.lineTo(x1, y1); X.stroke();
-  X.globalAlpha = .12; for (let k = 1; k < 8; k++) { const y = y1 - (y1 - y0) * k / 8; X.beginPath(); X.moveTo(x0, y); X.lineTo(x1, y); X.stroke(); } X.globalAlpha = 1;
-  const pts = []; for (let i = 0; i <= 200; i++) { const u = i / 200; const lin = u * .55; const up = u > .72 ? Math.pow((u - .72) / .28, 3) * 3 : 0; pts.push([x0 + (x1 - x0) * u * .86, y1 - (y1 - y0) * (lin * (u < .72 ? 1 : 1) * .6 + up)]); }
+  const x0 = B.x + 10, x1 = B.x + B.w, y1 = TALL ? H * .70 : H - 56, y0 = TALL ? 140 : 24;
+  X.strokeStyle = P.ink; X.lineWidth = TALL ? 4 : 3; X.lineCap = 'square';
+  X.beginPath(); X.moveTo(x0, y0 + (TALL ? 420 : 150)); X.lineTo(x0, y1); X.lineTo(x1, y1); X.stroke();
+  // steady doubling, then the knee
+  const knee = .74, f = u => u < knee ? u * .42 : knee * .42 + Math.pow((u - knee) / (1 - knee), 3.2) * 2.2;
+  const pt = u => [x0 + (x1 - x0) * u * (TALL ? .97 : .9), y1 - (y1 - y0) * f(u) * (TALL ? .55 : .62)];
   const r = rng(5); X.fillStyle = P.ink;
-  for (let i = 0; i < 16; i++) { const u = i / 15 * .7, [x, y] = pts[Math.round(u * 200)]; X.beginPath(); X.arc(x, y + (r() - .5) * 26, TALL ? 11 : 8, 0, 7); X.fill(); }
-  X.strokeStyle = P.red; X.lineWidth = TALL ? 12 : 9; X.lineJoin = 'round'; X.beginPath(); pts.forEach(([x, y], i) => i ? X.lineTo(x, y) : X.moveTo(x, y)); X.stroke();
-  const s = fitSize('P(DOOM)', B.w * (TALL ? .92 : .6), 900, SANS);
-  const ty = y0 + (TALL ? 200 : 110);
-  txt("I'm upping my", x0 + 24, ty + s * .3, 400, s * .34, SERIF, P.ink, { it: true });
-  txt('P(DOOM)', x0 + 18, ty + s * 1.1, 900, s, SANS, P.ink);
-  const ns = TALL ? 38 : 26; let ny = y0 + (TALL ? 60 : 44);
-  let x = x0 + 24;
-  for (const [t, dead] of [['doubling every 7 mo', 1], ['4 mo', 1], ['2 mo', 1], ['every', 0]]) {
-    font(700, ns, MONO); if (x + X.measureText(t).width > B.x + B.w) { x = x0 + 24; ny += ns * 1.5; }
-    const w = txt(t, x, ny, 700, ns, MONO, P.red); if (dead) pen(x - 4, ny - ns * .32, x + w + 4, ny - ns * .34, ns * .12); x += w + ns * .8;
-  }
+  for (let i = 0; i < 9; i++) { const [x, y] = pt(.06 + i * .08); X.beginPath(); X.arc(x, y + (r() - .5) * (TALL ? 30 : 22), TALL ? 12 : 9, 0, 7); X.fill(); }
+  X.strokeStyle = P.red; X.lineWidth = TALL ? 13 : 10; X.lineJoin = X.lineCap = 'round'; X.beginPath();
+  for (let i = 0; i <= 300; i++) { const [x, y] = pt(i / 300); if (y < -50) break; i ? X.lineTo(x, y) : X.moveTo(x, y); }
+  X.stroke();
+  // title in the empty upper-left
+  const s = fitSize('P(DOOM)', B.w * (TALL ? .7 : .56), 900, SANS);
+  const ty = TALL ? y0 + 120 : y0 + 60;
+  txt("I'm upping my", x0 + (TALL ? 0 : 10), ty + s * .18, 400, s * .34, SERIF, P.ink, { it: true });
+  txt('P(DOOM)', x0 + (TALL ? -4 : 4), ty + s * 1.16, 900, s, SANS, P.ink);
+  // one redline at the knee
+  const ns = TALL ? 40 : 28, [kx, ky] = pt(knee);
+  const label = 'doubling every 7 months';
+  font(700, ns, MONO); const lw = X.measureText(label).width;
+  const lx = kx - lw - ns * 1.2, ly = ky - ns * 1.6;
+  txt(label, lx, ly, 700, ns, MONO, P.ink, { a: .75 });
+  pen(lx + X.measureText('doubling every ').width - 6, ly - ns * .32, lx + lw + 6, ly - ns * .36, ns * .13);
   grain(false);
 };
 

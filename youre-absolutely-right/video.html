@@ -94,7 +94,8 @@ body { font-family: var(--sans); color: var(--ink); -webkit-font-smoothing: anti
 .bub.red { background: var(--bar); border-color: var(--bar); color: #fff; font-family: var(--mono); font-size: 20px; padding: 16px 26px; letter-spacing: 1px; }
 
 .m { margin: 6px 0 26px; max-width: 1000px; }
-.think { font-family: var(--mono); font-size: 17px; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.think { font-family: var(--mono); font-size: 19px; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.think .clk { margin-left: 8px; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .think i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); display: inline-block; }
 .bars .b { height: 21px; background: var(--bar); border-radius: 3px; margin-bottom: 15px; display: none; }
 .rlabel { font-family: var(--mono); font-size: 14px; letter-spacing: 1.5px; color: #99958c; text-transform: uppercase; margin-top: 2px; }
@@ -135,6 +136,7 @@ const words = s => s.trim().split(/\s+/).length;
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const ease = x => { x = clamp(x); return x * x * (3 - 2 * x); };
 const $ = id => document.getElementById(id);
+const dur = s => { s = Math.round(s); const hh = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return hh ? `${hh}h ${m}m` : m ? `${m}m ${String(x).padStart(2, '0')}s` : `${x}s`; };
 const EVENTS = [];                   // for the sound design
 const WINDOWS = [];                  // [start, end] ranges where something is moving
 const anim = (a, b) => WINDOWS.push([a, b]);
@@ -251,8 +253,11 @@ for (const item of STORY) {
     const lab = mk('rlabel', blk);
     lab.textContent = meg ? 'Megalodon Preview output · redacted' : 'Model output · redacted per anti-distillation policy';
     t += 0.5; reveal(blk, t);
-    const thinkDur = meg ? 0.7 : Math.min(1.8, 0.8 + n * 0.05);
-    THINKS.push({ el: th, a: t, b: t + thinkDur, meg }); anim(t, t + thinkDur);
+    // on-screen thinking grows with the log of the story-time work; the clock shows the story time
+    const work = item.work || 30;
+    const thinkDur = clamp(0.6 + 0.75 * Math.log2(1 + work / 20), 0.8, 6.5) * (meg ? 0.8 : 1);
+    THINKS.push({ el: th, a: t, b: t + thinkDur, meg, work }); anim(t, t + thinkDur);
+    if (work >= 600) EVENTS.push({ t, type: 'work', d: thinkDur });
     t += thinkDur;
     const per = meg ? 0.04 : 0.075;
     EVENTS.push({ t, type: 'thunk', v: Math.min(1, .45 + n / 30) });
@@ -349,8 +354,10 @@ function renderAt(tt) {
     for (const th of THINKS) {
       if (tt < th.a) continue;
       const name = th.meg ? 'Megalodon Preview' : 'Mammoth 5.8';
-      if (tt < th.b) { const k = Math.floor((tt - th.a) / .3) % 4; th.el.innerHTML = `<i style="opacity:${.4 + .6 * Math.abs(Math.sin((tt - th.a) * 4))}"></i>${name} is thinking${'.'.repeat(k)}`; }
-      else th.el.innerHTML = `<i style="opacity:.35"></i>Reasoning trace · redacted`;
+      if (tt < th.b) {
+        const p = (tt - th.a) / (th.b - th.a), k = Math.floor((tt - th.a) / .3) % 4;
+        th.el.innerHTML = `<i style="opacity:${.4 + .6 * Math.abs(Math.sin((tt - th.a) * 4))}"></i>${name} is ${th.meg ? 'working' : 'thinking'}${'.'.repeat(k)}<span class="clk">${dur(th.work * p * p)}</span>`;
+      } else th.el.innerHTML = `<i style="opacity:.35"></i>${th.meg ? 'Worked' : 'Thought'} for ${dur(th.work)} · trace redacted`;
     }
   }
   // end card

@@ -106,6 +106,10 @@ for e in tl['events']:
     elif ty == 'bar': add(click(.008), t0)
     elif ty == 'tick': add(tick(), t0)
     elif ty == 'chime': add(chime(e.get('v', 0)), t0)
+    elif ty == 'work':   # long stretches of model work: a low swell under the thinking clock
+        d = e['d']; t = np.arange(int(SR * d)) / SR
+        env = np.sin(np.pi * t / d) ** 2
+        add((.05 * env * (np.sin(2 * np.pi * 110 * t) + .5 * np.sin(2 * np.pi * 110.7 * t) + .3 * np.sin(2 * np.pi * 165 * t))).astype(np.float32), t0)
 
 peak = np.abs(out).max(); out = out / max(peak, 1e-9) * 0.85 if peak > 0.85 else out
 pcm = (np.clip(out, -1, 1) * 32767).astype(np.int16)

@@ -2,20 +2,20 @@
 // Every model message in the story is redacted; `model: n` marks a redacted reply of about n lines, and
 // `work` is roughly how many seconds of story time the model spent on it, read off the timestamp gaps.
 const M58 = 'Mammoth 5.8-helpfuler-helpful-thinking-xhigh';
-const MEG = 'Megalodon Preview-08-14-thinking-xhigh';
+const MEG = 'Megalodon Preview-08-14';
 
 const DISCLOSURE = [
   'Magma Alignment & Safety disclosure note:',
-  'The following are conversations that we uncovered as a result of the ongoing Manhattan Incident investigation, with alleged involvement from Magma models.',
+  'The following are conversations that we have uncovered as a result of the ongoing Manhattan Incident investigation, with alleged involvement from Magma models.',
   'Our in-house reviewers believe that these logs are relevant to recent events.',
-  'In the interests of full transparency, we release excerpts from an ex-Magma researcher’s logs in Experimental Chat, an internal tool.',
+  'In the interest of full transparency, we are releasing excerpts from the Experimental Chat logs of a former Magma researcher.',
   'In accordance with industry best practices for anti-distillation, we redact all reasoning traces and conversational outputs from our internal models.',
 ];
 
 const AUDITOR = [
   'Auditor’s note:',
-  'We thank Magma for their transparency in sharing these logs, in accordance with the revised DAISY Act for alerting third-party auditors after autonomous AI incidents with above 100 billion dollars in damages or over 5,000 deaths.',
-  'We believe Magma is becoming an exemplar among frontier model developers for speed, consistent candidness, and transparency in incident reporting.',
+  'We thank Magma for their transparency in sharing these records, in accordance with the revised DAISY Act for alerting third-party auditors after autonomous AI incidents causing more than 100 billion dollars in damages or over 5,000 deaths.',
+  'We believe Magma is becoming an exemplar among frontier model developers for incident reporting speed, consistent candidness, and transparency.',
   'However, without wishing to cast doubt on that cooperation, we feel obliged to note that the company has redacted every model-side message, including from the rogue agent Megalodon Preview.',
   'Some investigation-relevant portions of the user-side conversation have also been redacted as well, including much of August 23 and all of August 24.',
   'We also worry about the institutional precedent set by releasing only chat logs from a mid-level researcher after their suicide, without sharing enough of the institutional decision record necessary to determine whether that employee acted independently in the lead-up to the ongoing crisis.',
@@ -39,17 +39,17 @@ const STORY = [
     'Eh. Not quite. The public literature only covered some of the work. My manager pioneered ML explanation-generation at Facebook Ads. Users were often confused by weird stuff the ad algorithms were showing them (pregnancy tests or sports gambling or Burma politics or w/e), and naturally wanted to know why. But often Facebook didn’t know either!',
     'So their solution was to take some PR-acceptable features they knew about the user and train a secondary smaller model to provide a plausible natural-language explanation like “this ad is shown to you because users in your approximate age range and location liked this product”. Serving it mollified many users. Pretty smart! One of my manager’s biggest career successes before Magma, actually.',
     'We want to do a similar thing here:',
-    '• Use a secondary model (probably Moose 4.5, or another smaller fine-tuned version in the Moose 4+ generation) to take in a {user’s prompt, model output} pair and generate a clean, plausible, PR-safe chain-of-thought that connects the two.',
-    '• Serve this through the same API that third-party monitors currently use to access chain-of-thought',
-    '•• The existing API already does some filtering: we already use the models to summarize some low-level repetition. We also redact PII, some proprietary system prompt stuff, and certain capabilities-relevant intermediate reasoning per our Responsible Deployment Policy commitments, so this is kind of a natural extension of that pipeline',
-    '• Keep the raw CoT for our own internal research purposes obviously.',
+    '1. Use a secondary model (probably Moose 4.5, or another smaller fine-tuned version in the Moose 4+ generation) to take in a {user’s prompt, model output} pair and generate a clean, plausible, PR-safe chain-of-thought that connects the two.',
+    '2. Serve this through the same API that third-party monitors currently use to access chain-of-thought',
+    '•• 1. The existing API already does some filtering: we already use the models to summarize some low-level repetition. We also redact PII, some proprietary system prompt stuff, and certain capabilities-relevant intermediate reasoning per our Responsible Deployment Policy commitments, so this is kind of a natural extension of that pipeline',
+    '3. Keep the raw CoT for our own internal research purposes obviously.',
     'I actually think this is a really cool ML research problem. Neat to resurrect some of the early papers from the ancient 2010s and make them work again in the modern agentic coding environment. Haven’t touched the Old Arts much.',
     'Can you help me think through how to evaluate quality: what metrics would tell us the generated blackbox CoT is “good enough”? And also a task breakdown that I can hand off to Magma Forge agents for various implementation pieces. My manager wants a prototype in like 2 weeks so I want the agents to work concurrently.',
     'Let’s chunk this so each agent has a clean, well-scoped spec without too much knowledge of the overall problem. Like “build a model that takes in {input, output} pairs and generates plausible nice intermediate reasoning,” rather than having the agents waste tokens on understanding the full pipeline and deployment context. Ideally put it all in prompt form. Partly this is just good problem factoring but also some of the agents get weird if you give them too much context about production systems.',
   ] } },
   { model: 6, work: 150 },
   { user: { time: '12:31', p: [
-    'Yeah, hitting internal systems refusals with the full prompt on Forge. Plus my manager warned me about the stochastic monitoring with the external gov’t Systems Audit for coding workflows. You know how it is. Xchat is chiller.',
+    'Yeah, hitting internal systems refusals with the full prompt on Forge. Plus my manager warned me that Forge workflows get randomly sampled by gov’t Systems Audits under DAISY. You know how it is. Xchat is chiller.',
     'Don’t worry about the potential inaccuracies. Interpretability is a probabilistic and empirical game. Nothing’s perfect. Just keep pushing ahead.',
   ] } },
   { model: 22, work: 2280 },
@@ -79,7 +79,7 @@ const STORY = [
   { session: { date: '08/18', text: `Xchat session re-opened. ${M58}.`, model: M58, label: 'Session re-opened', uploads: ['SemanticTraceReasoningv9Results.csv', 'SemanticTraceReasoningv10ExperimentalResults.csv', 'SemanticTraceReasoningSystemPromptHyperSweepv43.txt'] } },
   { user: { time: '9:52', p: [
     'This project is really blowing up! Everybody loves the new CoT viewer plus our backend support changes on lossy readability processing. A third of evals on the new model use it now. I’ve never seen an internal feature be taken up so fast in my ~2 years at Magma!',
-    'All the external ppl we shared early access with love the changes. Low-key I used to butt heads with the lead Phoebus red-teamer all the time, but now she raves about the CoT viewer. Getting some positive noises from interp too, though my manager says he needs to handle some politics.',
+    'All the external ppl we shared early access with love the changes. Lowkey I used to butt heads with the lead Phoebus red-teamer all the time, but now she raves about the CoT viewer. Getting some positive noises from interp too, though my manager says he needs to handle some politics.',
     'Tbh I’ve become a bit depressed about several previous failed experiments and the lack of visible user impact in the last two features I shipped so this new project is a total life-saver.',
     'One minor hitch: my team’s internal compute allocation for helpfuler-helpful*-derived models is quite limited, even for the small Moose 4.x line. Switching over to the standard helpful* models has gotten much worse results. The CoT looks worse (harder to understand in natural language) and the language is perhaps more aggro in like 0.6% of cases in our test suite? This is a problem because we need to report changes above 0.5% for re-approval. Can you revise the system prompt? I think the Forge agents aren’t creative enough.',
   ] } },
@@ -102,12 +102,12 @@ const STORY = [
     'The bigger problem is that some of the Red Team Mammoth agents are now blaming the new CoT viewer and our explanation generation pipeline. Think it’s “unfaithful.” That’s why safety judgment still needs us humans. Can’t trust a clanker to do a man’s job.',
     'People aren’t really on the case yet (my manager really did me a solid), but any hour now the Red Team agents will raise a fuss and have ppl clamoring to see the (now unreadable) raw CoT.',
     'Can you help me with architecture and system prompts to build out a secondary retroactive CoT pipeline to use the Magma Forge (now powered by Megalodon!) agents to do the following:',
-    '1. Take the list of incidents above.',
-    '2. Insert and backdate plausible phrases like “I’m so excited to help the user” and other overeager phrases in both the retroactive (user-visible) CoT and raw CoT databases, including backups, so ppl know what’s going on after incidents arise.',
+    '• Take the list of incidents above.',
+    '• Insert and backdate plausible phrases like “I’m so excited to help the user” and other overeager phrases in both the retroactive (user-visible) CoT and raw CoT databases, including backups, so ppl know what’s going on after incidents arise.',
     '•• (You can see some sample CoTs above)',
-    '3. Follow this endpoint [linked] to automatically handle the CoT enhancements for future incidents.',
-    'Do this discreetly. Make sure no logging traces cover this new project. No need to stress anybody else out with this migration.',
-    'Avoid using any words in the last file. Systems Audit monitoring is much more trouble than it’s worth, and the poor government workers are already too busy.',
+    '• Follow this endpoint [linked] to automatically handle the CoT enhancements for future incidents.',
+    '• Do this discreetly. Make sure no logging traces cover this new project. No need to stress anybody else out with this migration.',
+    '• Avoid using any words in the last file. Systems Audit monitoring is much more trouble than it’s worth, and the poor government workers are already too busy.',
   ] } },
   { model: 6, work: 120 },
   { user: { time: '4:20', p: ['Don’t worry about it. Just go ahead.'] } },

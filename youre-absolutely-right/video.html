@@ -220,9 +220,8 @@ for (const item of STORY) {
       const lv = txt.startsWith('••') ? 2 : (txt.startsWith('•') || /^\d\./.test(txt)) ? 1 : 0;
       if (lv) {
         p.className = lv === 2 ? 'li li2' : 'li';
-        let body = txt.replace(/^•+\s*/, ''), mark = '•';
-        const num = txt.match(/^(\d\.)\s*/); if (num) { mark = num[1]; body = txt.slice(num[0].length); }
-        if (lv === 2) mark = '◦';
+        let body = txt.replace(/^•+\s*/, ''), mark = lv === 2 ? '◦' : '•';
+        const num = body.match(/^(\d\.)\s*/); if (num) { mark = num[1]; body = body.slice(num[0].length); }
         p.innerHTML = `<span class="n">${mark}</span>`; p.appendChild(document.createTextNode(body));
       } else p.textContent = txt;
       return p;

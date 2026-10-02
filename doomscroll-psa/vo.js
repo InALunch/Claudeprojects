@@ -1,0 +1,1 @@
+window.VO = {"start": 2.389, "look": 2.517, "more": 1.792, "stop": 3.413, "bottom": 2.56, "built": 2.24, "morning": 1.557, "noscroll": 2.837, "doom": 1.707, "once": 2.005, "partner": 3.968, "like": 0.811, "sub": 1.472, "close": 1.643};

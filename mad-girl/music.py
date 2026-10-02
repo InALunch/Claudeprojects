@@ -52,32 +52,35 @@ def brown(d):
     x = np.cumsum(noise(d)); x -= lfilter([1], [1, -.9995], x) * (1 - .9995); return x / (np.abs(x).max() + 1e-9)
 
 # ---------------- mind bus: intro, the last line, outro ----------------
-add(mind, pad([26, 33, 38], .8, 15.5, .20, a=3, r=2.5, bright=.1), .8)
-for i in range(5):                      # boot text keystrokes
-    t0 = 1.2 + i * .85; nchar = [46, 36, 34, 34, 18][i]
-    for k in range(0, nchar, 2):
-        c = noise(.012) * np.exp(-tv(.012) * 400); add(mind, lowpass(c, 5000), t0 + k / 60 + rng.uniform(0, .01), .05, rng.uniform(-.3, .3))
-for k, m in enumerate([74, 81, 86]): add(mind, bell(midi(m), 4, 1.2), 8.3 + k * .35, .07, (k - 1) * .4)   # eye opens
-add(mind, bell(midi(50), 6, .7, 2.0), 10.0, .12)                                                          # title
+st = tl['stage']; fin = tl['final']
+def sweep_noise(d, f0, f1):
+    n = noise(d); fc = np.geomspace(f0, f1, len(n)); a = np.exp(-2 * np.pi * fc / SR); y = np.zeros_like(n); zi = [0.]
+    for i0 in range(0, len(n), 512):                     # one-pole lowpass with a sweeping cutoff
+        aa = a[i0]; y[i0:i0 + 512], zi = lfilter([1 - aa], [1, -aa], n[i0:i0 + 512], zi=zi)
+    return y
+for kt in tl['keys']:                   # someone types "hi. are you there?"
+    add(mind, lowpass(noise(.014) * np.exp(-tv(.014) * 380), 4200), kt, .07, rng.uniform(-.2, .2))
+add(mind, pad([26, 33, 38], 6.0, 15.5, .20, a=2.5, r=2.5, bright=.1), 6.0)                               # and the world hums into being
+for k, m in enumerate([74, 81, 86]): add(mind, bell(midi(m), 4, 1.2), 7.3 + k * .35, .07, (k - 1) * .4)   # eye opens
+add(mind, bell(midi(50), 6, .7, 2.0), 9.8, .12)                                                           # title
 add(mind, lowpass(noise(.03) * np.exp(-tv(.03) * 150), 1500), 12.35, .08)                                 # blink
-fp = Ls(5, 3)                           # "(I think I made you up...)" in the dark
+fp = fin['start']                       # the last "(I think I made you up...)", in the dark
 t = tv(8.5); tone = (np.sin(2 * np.pi * 880 * t) + np.sin(2 * np.pi * 883 * t)) * env_ar(len(t), 3, 3) * .5
 add(mind, tone, fp, .018)
-add(mind, pad([62, 66, 69, 74], fp + .5, fp + 8, .05, a=3, r=3, bright=.1), fp + .5)
+add(mind, pad([62, 66, 69, 74], fp + .5, fp + 9.5, .05, a=3, r=3, bright=.1), fp + .5)
+for k, m in enumerate([86, 81, 78, 74]): add(mind, bell(midi(m), 4, 1.0), fin['morph'] + .2 + k * .28, .04, (k - 1.5) * .3)   # the figure becomes an eye
+add(mind, bell(midi(62), 6, .8, 2.0), fin['open'], .07)
 OT = tl['outro']
-add(mind, pad([50, 57, 62, 66], OT + .6, OT + 7, .10, a=2, r=3, bright=.15), OT + .6)
-for k in range(0, 17, 2): add(mind, lowpass(noise(.012) * np.exp(-tv(.012) * 400), 5000), OT + 3 + k / 16, .04)
-add(mind, bell(midi(62), 7, .6, 2.0), OT + 6.8, .12); add(mind, bell(midi(50), 7, .5, 2.0), OT + 6.8, .1)
+add(mind, pad([50, 57, 62, 66], OT + .6, OT + 7, .08, a=2, r=3, bright=.15), OT + .6)
+add(mind, bell(midi(62), 7, .6, 2.0), OT + 6.6, .12); add(mind, bell(midi(50), 7, .5, 2.0), OT + 6.6, .1)
 
 # ---------------- world bus ----------------
 start, end = ST[0]['start'] - 1.5, dead[-1]
 add(world, pad([26, 33], start, end, .16, a=4, r=.1, bright=.2, detune=.08), start)            # bedrock drone
-for l in L:                                                                                    # a bell for every line
-    if l['si'] == 5 and l['li'] == 3: continue
-    m = [74, 77, 81][l['li'] % 3] if not l['paren'] else 81
+for l in L:                                                                                    # a low bell to open each stanza, glass for each "(I think...)"
     if l['paren']:
         add(world, bell(midi(81), 5, .9), l['start'] + .05, .05, -.3); add(world, bell(midi(88) + 2.5, 5, .9), l['start'] + .08, .04, .3)
-    else: add(world, bell(midi(m - 12), 4, 1.1, 2.0), l['start'] + .05, .06, rng.uniform(-.3, .3))
+    elif l['li'] == 0: add(world, bell(midi(62), 4, 1.1, 2.0), l['start'] + .05, .06)
 for d in dead:                                                                                 # swell into each "dead", then cut
     t = tv(2.3); sw = (t / 2.3) ** 3
     add(world, lowpass(noise(2.3), 2500) * sw, d - 2.3, .10)
@@ -125,25 +128,25 @@ for i in range(40):                                  # shimmer
     tt0 = s['start'] + i * .45; m = [77, 81, 86, 89, 93][i % 5]
     add(world, bell(midi(m), 2, 2.5), tt0, .02 + .03 * (l1 + 1 < tt0 < l2), rng.uniform(-.7, .7))
 
-# IV: God topples, hell's fires fade, everyone leaves
-s = ST[3]; l0 = Ls(3, 0); l1 = Ls(3, 1); d3 = dead[2]
-top = l0 + .3
-seg = pad([38, 45, 50, 53, 57], s['start'] - .6, d3, .15, a=2.5, r=.05, bright=.6,
-          wob=lambda t: 1 - .11 * np.clip((t - (top - (s['start'] - .6))) / 2.6, 0, 1) ** 2)
-add(world, lowpass(seg, 1400), s['start'] - .6)
-fire_d = d3 - (s['start'] - .6); fn = lowpass(noise(fire_d), 1800)
-tt = np.arange(len(fn)) / SR + s['start'] - .6
-F = 1 - np.clip((tt - (l0 + 2.0)) / 3.5, 0, 1)
+# IV: a stage. God on ropes, cloth fire, cutout angels and devils; behind the painted sky, a red light
+s = ST[3]; d3 = dead[2]; t0 = s['start'] - 2.6
+seg = pad([38, 45, 50, 53, 57], t0, d3, .15, a=2.5, r=.05, bright=.6,
+          wob=lambda t: 1 - .11 * np.clip((t - (st['snap'] - t0)) / 2.6, 0, 1) ** 2)
+add(world, lowpass(seg, 1400), t0)
+d = 1.9; t = tv(d); add(world, lowpass(noise(d), 900) * np.sin(np.pi * t / d) ** 2, s['start'] - 2.0, .12)        # the curtain parts
+fn = lowpass(noise(d3 - t0), 1800); tt = np.arange(len(fn)) / SR + t0
+F = (1 - np.clip((tt - (st['firefade'] - .2)) / 2.8, 0, 1)) * np.clip((tt - (s['start'] - 1.8)) / 1.0, 0, 1)
 pops = (rng.random(len(fn)) < 40 / SR) * rng.uniform(-1, 1, len(fn)); pops = lfilter([1], [1, -.97], pops)
-add(world, (fn * .5 + pops * .6) * F, s['start'] - .6, .10)
-for t0, up in ((l1 + .4, 1), (l1 + 1.1, -1)):          # exit, whooshing up and down
-    d = 3.5; t = tv(d); n = noise(d)
-    fc = np.linspace(400, 3000, len(t)) if up > 0 else np.linspace(2500, 250, len(t))
-    y = np.zeros_like(n); a = np.exp(-2 * np.pi * fc / SR); zi = [0.]
-    for i0 in range(0, len(n), 512):                     # one-pole lowpass with a sweeping cutoff
-        aa = a[i0]; y[i0:i0 + 512], zi = lfilter([1 - aa], [1, -aa], n[i0:i0 + 512], zi=zi)
-    add(world, y * np.sin(np.pi * t / d) ** 2, t0, .12, -.5 * up)
-add(world, bell(midi(69), 5, .8), l1 + 4.8, .05)          # the one voice kept
+add(world, (fn * .5 + pops * .6) * F, t0, .10)                                                                   # cloth fire
+for k, ts in enumerate((st['snap'], st['snap'] + .55)):                                                         # the ropes give
+    t = tv(.35); add(world, lowpass(noise(.35), 7000) * np.exp(-t * 40) + .4 * np.sin(2 * np.pi * (180 - 60 * t) * t) * np.exp(-t * 9), ts, .2, -.2 + .4 * k)
+t = tv(1.2); f = 40 + 60 * np.exp(-t * 18)                                                                      # God hits the boards
+add(world, np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 5) + lowpass(noise(1.2), 400) * np.exp(-t * 9) * .6, st['land'], .45)
+for ts, pan in ((st['exitA'], -.6), (st['exitB'], .6)):                                                         # exit, on wooden tracks
+    d = 1.9; t = tv(d); add(world, lowpass(noise(d), 500) * (1 + .6 * np.sin(2 * np.pi * 13 * t)) * np.sin(np.pi * t / d) ** 2, ts, .16, pan)
+d = 2.4; t = tv(d); add(world, sweep_noise(d, 300, 2400) * np.sin(np.pi * t / d) ** 2, st['fly'], .12)          # the sky is flown out
+hd = d3 - (st['fly'] + 1.2); t = tv(hd)                                                                         # and something hums, recording
+add(world, (np.sin(2 * np.pi * 120 * t) + .5 * np.sin(2 * np.pi * 240 * t) + .25 * np.sin(2 * np.pi * 360 * t)) * env_ar(len(t), .8, .05), st['fly'] + 1.2, .025)
 
 # V: growing old
 s = ST[4]; l1 = Ls(4, 1)
